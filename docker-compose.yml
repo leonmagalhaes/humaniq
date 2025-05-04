@@ -3,41 +3,30 @@ version: '3.9'
 services:
   backend:
     build:
-      context: ./humaniq_backend
-      dockerfile: Dockerfile
-    container_name: humaniq-backend
-    restart: unless-stopped
+      context: ./backend
     ports:
       - "5000:5000"
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/instance
     environment:
       - FLASK_APP=run.py
-      - FLASK_ENV=production
-      - FLASK_CONFIG=production
-      - DATABASE_URL=sqlite:///instance/humaniq.db
-    volumes:
-      - backend-data:/app/instance
-    networks:
-      - humaniq-network
+      - FLASK_ENV=development
+    restart: unless-stopped
 
   frontend:
     build:
-      context: ./humaniq_web_app
-      dockerfile: Dockerfile
-    container_name: humaniq-frontend
-    restart: unless-stopped
+      context: ./frontend
     ports:
-      - "3000:3000"
+      - "3000:80"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5000
+      - REACT_APP_API_URL=http://localhost:5000
     depends_on:
       - backend
-    networks:
-      - humaniq-network
-
-networks:
-  humaniq-network:
-    driver: bridge
+    restart: unless-stopped
 
 volumes:
-  backend-data:
-    driver: local
+  backend_data:

@@ -1,161 +1,168 @@
 # HUMANIQ
 
-## 📋 Sobre o Projeto
+## Descrição do Projeto
 
-O HUMANIQ é uma aplicação web desenvolvida para auxiliar jovens entre 15 e 25 anos a desenvolver habilidades sociais relevantes para o mercado de trabalho. A plataforma oferece recursos interativos, exercícios práticos e conteúdo educacional focado no desenvolvimento de soft skills essenciais para o sucesso profissional.
+HUMANIQ é uma aplicação web moderna que oferece uma interface amigável para gerenciamento de recursos humanos. O projeto é composto por um backend RESTful desenvolvido em Flask e um frontend interativo construído com React e Tailwind CSS, ambos containerizados com Docker para facilitar a implantação e execução.
 
-### 🎯 Propósito
+## Tecnologias Utilizadas
 
-Nosso objetivo é preencher a lacuna entre a educação tradicional e as habilidades interpessoais exigidas pelo mercado de trabalho atual, proporcionando aos jovens:
+- **Backend**:
+  - Python 3.9+
+  - Flask (Framework web)
+  - SQLite (Banco de dados)
+  - Flask-RESTful (API RESTful)
+  - Docker (Containerização)
 
-- Desenvolvimento de comunicação eficaz
-- Aprimoramento do trabalho em equipe
-- Fortalecimento da inteligência emocional
-- Capacitação em resolução de problemas
-- Estímulo ao pensamento crítico
+- **Frontend**:
+  - React 18
+  - TypeScript
+  - Tailwind CSS (Framework CSS)
+  - Docker (Containerização)
 
-## 🚀 Tecnologias Utilizadas
+- **DevOps**:
+  - Docker Compose (Orquestração de contêineres)
+  - Shell Script (Automação)
 
-O projeto foi desenvolvido utilizando as seguintes tecnologias:
+## Pré-requisitos
 
-### Frontend
-- **React.js**: Biblioteca JavaScript para construção de interfaces
-- **Tailwind CSS**: Framework CSS para design responsivo e moderno
+Para executar este projeto, você precisa ter instalado:
 
-### Backend
-- **Python**: Linguagem de programação principal
-- **Flask**: Framework web leve e flexível
+- Docker (versão 20.10.0 ou superior)
+- Docker Compose (versão 2.0.0 ou superior)
+- Git (para clonar o repositório)
 
-### Banco de Dados
-- **SQLite**: Sistema de gerenciamento de banco de dados relacional
+## Como Executar o Projeto
 
-### Infraestrutura
-- **Docker**: Containerização da aplicação
-- **Docker Compose**: Orquestração dos serviços
+### Usando o Script de Inicialização
 
-## 📁 Estrutura do Projeto
+1. Clone o repositório:
+   ```bash
+   git clone [URL_DO_REPOSITÓRIO]
+   cd humaniq
+   ```
+
+2. Execute o script de inicialização:
+   ```bash
+   ./run.sh
+   ```
+
+### Usando Docker Compose Manualmente
+
+1. Clone o repositório:
+   ```bash
+   git clone [URL_DO_REPOSITÓRIO]
+   cd humaniq
+   ```
+
+2. Construa e inicie os contêineres:
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+
+## Como Acessar a Aplicação
+
+- **Frontend**: Acesse http://localhost:3000 no seu navegador
+- **Backend API**: Disponível em http://localhost:5000
+
+## Inicialização do Banco de Dados
+
+Para inicializar o banco de dados com dados de exemplo, execute:
+
+```bash
+docker compose exec backend python seed.py
+```
+
+Este comando executará o script de seed que populará o banco de dados SQLite com dados iniciais necessários para o funcionamento da aplicação.
+
+## Funcionalidades Implementadas
+
+- **Autenticação e Autorização**:
+  - Login/Logout de usuários
+  - Controle de acesso baseado em perfis
+
+- **Gestão de Funcionários**:
+  - Cadastro, edição e exclusão de funcionários
+  - Visualização detalhada de perfis
+  - Busca e filtragem avançada
+
+- **Gestão de Departamentos**:
+  - Criação e gerenciamento de departamentos
+  - Associação de funcionários a departamentos
+
+- **Dashboard Analítico**:
+  - Visualização de métricas e KPIs
+  - Gráficos e relatórios interativos
+
+## Estrutura do Projeto
 
 ```
 humaniq/
-├── frontend/             # Aplicação React
-│   ├── public/           # Arquivos estáticos
-│   ├── src/              # Código-fonte do frontend
-│   ├── Dockerfile        # Configuração Docker para o frontend
-│   └── .gitignore        # Arquivos ignorados pelo Git (frontend)
-│
-├── backend/              # API Flask
-│   ├── app/              # Código-fonte do backend
-│   ├── database/         # Arquivos do banco de dados SQLite
-│   ├── Dockerfile        # Configuração Docker para o backend
-│   └── .gitignore        # Arquivos ignorados pelo Git (backend)
-│
-├── docker-compose.yml    # Configuração dos serviços Docker
-└── README.md             # Este arquivo
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── models/
+│   │   ├── resources/
+│   │   └── static/
+│   ├── config.py
+│   ├── run.py
+│   ├── seed.py
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── Dockerfile
+├── docker-compose.yml
+├── run.sh
+└── README.md
 ```
 
-## ⚙️ Pré-requisitos
+## Parando os Serviços
 
-Para executar este projeto localmente, você precisará ter instalado:
-
-- [Docker](https://www.docker.com/get-started) (versão 20.10.0 ou superior)
-- [Docker Compose](https://docs.docker.com/compose/install/) (versão 2.0.0 ou superior)
-- [Git](https://git-scm.com/downloads) (opcional, para clonar o repositório)
-
-## 🔧 Como Executar
-
-Siga os passos abaixo para configurar e executar o projeto em seu ambiente local:
-
-### 1. Clone o repositório
+Para parar todos os serviços, execute:
 
 ```bash
-git clone https://github.com/seu-usuario/humaniq.git
-cd humaniq
+docker compose down
 ```
 
-### 2. Inicie os contêineres Docker
+Para parar e remover volumes (isso apagará o banco de dados):
 
 ```bash
-docker-compose up -d
+docker compose down -v
 ```
 
-Este comando irá:
-- Construir as imagens Docker para o frontend e backend (na primeira execução)
-- Criar e iniciar os contêineres
-- Configurar a rede entre os serviços
-- Iniciar a aplicação em modo destacado (background)
+## Desenvolvimento
 
-### 3. Verifique se os contêineres estão em execução
+### Logs dos Contêineres
 
+Para visualizar os logs do backend:
 ```bash
-docker-compose ps
+docker compose logs -f backend
 ```
 
-Você deverá ver dois serviços em execução: `humaniq-frontend` e `humaniq-backend`.
-
-## 🌐 Acessando a Aplicação
-
-Após a inicialização bem-sucedida dos contêineres, você pode acessar:
-
-- **Frontend**: http://localhost:3000
-- **API Backend**: http://localhost:5000
-
-## 🛑 Parando a Aplicação
-
-Para parar a execução dos contêineres:
-
+Para visualizar os logs do frontend:
 ```bash
-docker-compose down
+docker compose logs -f frontend
 ```
 
-Para parar e remover volumes (isso apagará dados persistentes):
+### Acessando o Shell dos Contêineres
 
+Para acessar o shell do backend:
 ```bash
-docker-compose down -v
+docker compose exec backend sh
 ```
 
-## 🔄 Desenvolvimento
-
-### Logs da Aplicação
-
-Para visualizar os logs em tempo real:
-
+Para acessar o shell do frontend:
 ```bash
-# Todos os serviços
-docker-compose logs -f
-
-# Apenas frontend
-docker-compose logs -f frontend
-
-# Apenas backend
-docker-compose logs -f backend
+docker compose exec frontend sh
 ```
 
-### Reconstruindo os Contêineres
+## Solução de Problemas
 
-Se você fizer alterações nos Dockerfiles ou no código-fonte:
-
-```bash
-docker-compose up -d --build
-```
-
-## 🤝 Contribuição
-
-Para contribuir com o projeto:
-
-1. Faça um fork do repositório
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-funcionalidade`)
-3. Faça commit das suas alterações (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Faça push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
-
-## 📝 Licença
-
-Este projeto está licenciado sob a [Licença MIT](LICENSE).
-
-## 📞 Contato
-
-Para mais informações sobre o projeto, entre em contato com a equipe de desenvolvimento.
-
----
-
-Desenvolvido com ❤️ pela equipe HUMANIQ
+- **Erro ao iniciar os contêineres**: Verifique se as portas 3000 e 5000 não estão sendo utilizadas por outros serviços.
+- **Frontend não consegue se comunicar com o backend**: Verifique se o backend está rodando corretamente e se a variável de ambiente `REACT_APP_API_URL` está configurada corretamente.
+- **Erro no banco de dados**: Execute o comando de seed novamente para reinicializar o banco de dados.
