@@ -24,7 +24,7 @@ const Assessment: React.FC = () => {
     const fetchQuestions = async () => {
       setLoading(true);
       try {
-        const response = await api.get('/assessment/questions');
+        const response = await api.get('/perguntas');
         setQuestions(response.data);
       } catch (error) {
         console.error('Erro ao carregar perguntas:', error);
@@ -58,7 +58,7 @@ const Assessment: React.FC = () => {
     setSubmitting(true);
     
     try {
-      await api.post('/assessment/submit', { answers });
+      await api.post('/submeter', { answers });
       navigate('/dashboard');
     } catch (error) {
       console.error('Erro ao enviar avaliação:', error);

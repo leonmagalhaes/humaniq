@@ -12,14 +12,14 @@ import { Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface UserProfile {
-  name: string;
+  nome: string;
   email: string;
-  createdAt: string;
-  completedChallenges: number;
-  level: number;
+  created_at: string;
+  desafios_concluidos: number;
+  nivel: number;
   xp: number;
-  nextLevelXp: number;
-  streak: number;
+  proximo_nivel_xp: number;
+  sequencia: number;
 }
 
 interface ChallengeHistory {
@@ -68,30 +68,24 @@ const Profile: React.FC = () => {
       setLoading(true);
       try {
         // Buscar dados do perfil
-        const profileResponse = await api.get('/users/profile');
-        setProfile(profileResponse.data);
-        setEditName(profileResponse.data.name);
-        setEditEmail(profileResponse.data.email);
+        const profileResponse = await api.get('/users/profile'); // Ajustado para `/profile`
+        setProfile(profileResponse.data.perfil);
+        setEditName(profileResponse.data.perfil.nome);
+        setEditEmail(profileResponse.data.perfil.email);
         
-        // Buscar histórico de desafios
-        const historyResponse = await api.get('/users/challenge-history');
-        setChallengeHistory(historyResponse.data);
-        
-        // Preparar dados para o gráfico de progresso
-        const progressResponse = await api.get('/users/progress-history');
-        
+        // Buscar progresso do usuário
+        const progressResponse = await api.get('/users/progresso'); // Ajustado para `/progresso`
         const chartData: ProgressData = {
-          labels: progressResponse.data.dates,
+          labels: progressResponse.data.progresso.resultados.map((r: any) => r.data_conclusao),
           datasets: [
             {
               label: 'XP Acumulado',
-              data: progressResponse.data.xpHistory,
+              data: progressResponse.data.progresso.resultados.map((r: any) => r.pontuacao),
               borderColor: '#9340FF',
               backgroundColor: 'rgba(147, 64, 255, 0.2)',
             },
           ],
         };
-        
         setProgressData(chartData);
       } catch (error) {
         console.error('Erro ao carregar dados do perfil:', error);
@@ -100,7 +94,7 @@ const Profile: React.FC = () => {
         setLoading(false);
       }
     };
-    
+  
     fetchProfileData();
   }, []);
   
@@ -168,11 +162,11 @@ const Profile: React.FC = () => {
       };
       
       if (newPassword) {
-        updateData.currentPassword = currentPassword;
-        updateData.newPassword = newPassword;
+        updateData.senha_atual = currentPassword;
+        updateData.nova_senha = newPassword;
       }
       
-      await api.put('/users/profile', updateData);
+      await api.put('/users/perfil', updateData);
       
       setUpdateSuccess(true);
       setIsEditing(false);
@@ -338,9 +332,9 @@ const Profile: React.FC = () => {
                     <div>
                       <div className="mb-6">
                         <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center text-2xl font-bold mb-4">
-                          {profile.name.charAt(0).toUpperCase()}
+                          {profile.nome.charAt(0).toUpperCase()}
                         </div>
-                        <h3 className="text-xl font-medium">{profile.name}</h3>
+                        <h3 className="text-xl font-medium">{profile.nome}</h3>
                         <p className="text-white text-opacity-70">{profile.email}</p>
                       </div>
                       
@@ -349,20 +343,20 @@ const Profile: React.FC = () => {
                           <div>
                             <p className="text-sm text-white text-opacity-70">Membro desde</p>
                             <p className="font-medium">
-                              {new Date(profile.createdAt).toLocaleDateString('pt-BR')}
+                              {new Date(profile.created_at).toLocaleDateString('pt-BR')}
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-white text-opacity-70">Nível</p>
-                            <p className="font-medium">{profile.level}</p>
+                            <p className="font-medium">{profile.nivel}</p>
                           </div>
                           <div>
                             <p className="text-sm text-white text-opacity-70">Desafios concluídos</p>
-                            <p className="font-medium">{profile.completedChallenges}</p>
+                            <p className="font-medium">{profile.desafios_concluidos}</p>
                           </div>
                           <div>
                             <p className="text-sm text-white text-opacity-70">Sequência atual</p>
-                            <p className="font-medium">{profile.streak} dias</p>
+                            <p className="font-medium">{profile.sequencia} dias</p>
                           </div>
                         </div>
                       </div>
@@ -370,15 +364,15 @@ const Profile: React.FC = () => {
                       <div className="border-t border-white border-opacity-10 my-6 pt-6">
                         <p className="text-sm text-white text-opacity-70 mb-2">Progresso para o próximo nível</p>
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs">Nível {profile.level}</span>
+                          <span className="text-xs">Nível {profile.nivel}</span>
                           <span className="text-xs">
-                            {profile.xp}/{profile.nextLevelXp} XP
+                            {profile.xp}/{profile.proximo_nivel_xp} XP
                           </span>
                         </div>
                         <div className="w-full bg-white bg-opacity-10 rounded-full h-2">
                           <div 
                             className="bg-secondary h-2 rounded-full" 
-                            style={{ width: `${(profile.xp / profile.nextLevelXp) * 100}%` }}
+                            style={{ width: `${(profile.xp / profile.proximo_nivel_xp) * 100}%` }}
                           ></div>
                         </div>
                       </div>

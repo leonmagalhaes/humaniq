@@ -5,107 +5,107 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import api from '../services/api';
 
-interface Challenge {
-  id: number;
-  title: string;
-  description: string;
-  videoUrl: string;
-  completed: boolean;
-  dueDate: string;
-  practicalChallenge: string;
+interface Desafio {
+  desafio_id: number;
+  titulo: string;
+  descricao: string;
+  urlVideo: string;
+  concluido: boolean;
+  prazo: string;
+  desafioPratico: string;
 }
 
-interface Question {
+interface Pergunta {
   id: number;
-  text: string;
-  options: string[];
-  correctOption: number;
+  texto: string;
+  opcoes: string[];
+  opcaoCorreta: number;
 }
 
 const Challenge: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { desafio_id } = useParams<{ desafio_id: string }>();
   const navigate = useNavigate();
   
-  const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
-  const [quizScore, setQuizScore] = useState<number | null>(null);
-  const [challengeCompleted, setChallengeCompleted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [desafio, setDesafio] = useState<Desafio | null>(null);
+  const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
+  const [respostasQuiz, setRespostasQuiz] = useState<Record<number, number>>({});
+  const [quizSubmetido, setQuizSubmetido] = useState(false);
+  const [pontuacaoQuiz, setPontuacaoQuiz] = useState<number | null>(null);
+  const [desafioConcluido, setDesafioConcluido] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [submetendo, setSubmetendo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   
   useEffect(() => {
-    const fetchChallengeData = async () => {
-      setLoading(true);
+    const buscarDadosDesafio = async () => {
+      setCarregando(true);
       try {
         // Buscar dados do desafio
-        const challengeResponse = await api.get(`/challenges/${id}`);
-        setChallenge(challengeResponse.data);
-        setChallengeCompleted(challengeResponse.data.completed);
+        const respostaDesafio = await api.get(`/desafio/${desafio_id}`);
+        setDesafio(respostaDesafio.data.desafio);
+        setDesafioConcluido(respostaDesafio.data.desafio.concluido);
         
         // Buscar perguntas do quiz
-        const questionsResponse = await api.get(`/challenges/${id}/questions`);
-        setQuestions(questionsResponse.data);
+        const respostaPerguntas = await api.get(`/desafio/${desafio_id}/perguntas`);
+        setPerguntas(respostaPerguntas.data.perguntas);
         
         // Verificar se o quiz já foi respondido
         try {
-          const quizResponse = await api.get(`/challenges/${id}/quiz-result`);
-          if (quizResponse.data.completed) {
-            setQuizSubmitted(true);
-            setQuizScore(quizResponse.data.score);
+          const respostaQuiz = await api.get(`/desafio/${desafio_id}/resultado-quiz`);
+          if (respostaQuiz.data.concluido) {
+            setQuizSubmetido(true);
+            setPontuacaoQuiz(respostaQuiz.data.pontuacao);
           }
         } catch (error) {
           // Quiz ainda não foi respondido, não é um erro
         }
       } catch (error) {
         console.error('Erro ao carregar dados do desafio:', error);
-        setError('Não foi possível carregar os dados do desafio. Tente novamente mais tarde.');
+        setErro('Não foi possível carregar os dados do desafio. Tente novamente mais tarde.');
       } finally {
-        setLoading(false);
+        setCarregando(false);
       }
     };
     
-    if (id) {
-      fetchChallengeData();
+    if (desafio_id) {
+      buscarDadosDesafio();
     }
-  }, [id]);
+  }, [desafio_id]);
   
-  const handleAnswerSelect = (questionId: number, optionIndex: number) => {
-    setAnswers({
-      ...answers,
-      [questionId]: optionIndex
+  const selecionarResposta = (idPergunta: number, indiceOpcao: number) => {
+    setRespostasQuiz({
+      ...respostasQuiz,
+      [idPergunta]: indiceOpcao
     });
   };
   
-  const handleQuizSubmit = async () => {
+  const submeterQuiz = async () => {
     // Verificar se todas as perguntas foram respondidas
-    if (Object.keys(answers).length !== questions.length) {
+    if (Object.keys(respostasQuiz).length !== perguntas.length) {
       alert('Por favor, responda todas as perguntas antes de enviar.');
       return;
     }
     
-    setSubmitting(true);
+    setSubmetendo(true);
     
     try {
-      const response = await api.post(`/challenges/${id}/submit-quiz`, { answers });
-      setQuizSubmitted(true);
-      setQuizScore(response.data.score);
+      const resposta = await api.post(`/desafio/${desafio_id}/submeter`, { respostas_quiz: respostasQuiz });
+      setQuizSubmetido(true);
+      setPontuacaoQuiz(resposta.data.resultado.pontuacao);
     } catch (error) {
       console.error('Erro ao enviar quiz:', error);
-      setError('Não foi possível enviar suas respostas. Tente novamente.');
+      setErro('Não foi possível enviar suas respostas. Tente novamente.');
     } finally {
-      setSubmitting(false);
+      setSubmetendo(false);
     }
   };
   
-  const handleMarkAsCompleted = async () => {
-    setSubmitting(true);
+  const marcarComoConcluido = async () => {
+    setSubmetendo(true);
     
     try {
-      await api.post(`/challenges/${id}/complete`);
-      setChallengeCompleted(true);
+      await api.post(`/desafio/${desafio_id}/concluir`);
+      setDesafioConcluido(true);
       
       // Redirecionar para o dashboard após um breve delay
       setTimeout(() => {
@@ -113,13 +113,13 @@ const Challenge: React.FC = () => {
       }, 2000);
     } catch (error) {
       console.error('Erro ao marcar desafio como concluído:', error);
-      setError('Não foi possível marcar o desafio como concluído. Tente novamente.');
+      setErro('Não foi possível marcar o desafio como concluído. Tente novamente.');
     } finally {
-      setSubmitting(false);
+      setSubmetendo(false);
     }
   };
   
-  if (loading) {
+  if (carregando) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16 flex items-center justify-center">
@@ -132,14 +132,14 @@ const Challenge: React.FC = () => {
     );
   }
   
-  if (error) {
+  if (erro) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16">
           <Card className="max-w-2xl mx-auto">
             <div className="text-center">
               <h2 className="text-2xl font-bold mb-4 text-red-500">Erro</h2>
-              <p className="mb-6">{error}</p>
+              <p className="mb-6">{erro}</p>
               <Button onClick={() => window.location.reload()}>
                 Tentar novamente
               </Button>
@@ -150,7 +150,7 @@ const Challenge: React.FC = () => {
     );
   }
   
-  if (!challenge) {
+  if (!desafio) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-16">
@@ -174,35 +174,35 @@ const Challenge: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           {/* Cabeçalho do desafio */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">{challenge.title}</h1>
+            <h1 className="text-3xl font-bold mb-2">{desafio.titulo}</h1>
             <div className="flex items-center justify-between">
               <p className="text-white text-opacity-70">
-                Prazo: {new Date(challenge.dueDate).toLocaleDateString('pt-BR')}
+                Prazo: {new Date(desafio.prazo).toLocaleDateString('pt-BR')}
               </p>
               <span className={`px-3 py-1 rounded-full text-sm ${
-                challengeCompleted 
+                desafioConcluido 
                   ? 'bg-green-500 bg-opacity-20 text-green-500' 
                   : 'bg-yellow-500 bg-opacity-20 text-yellow-500'
               }`}>
-                {challengeCompleted ? 'Concluído' : 'Em andamento'}
+                {desafioConcluido ? 'Concluído' : 'Em andamento'}
               </span>
             </div>
           </div>
-          
+  
           {/* Descrição do desafio */}
           <Card className="mb-8">
             <h2 className="text-xl font-bold mb-4">Sobre este desafio</h2>
             <p className="text-white text-opacity-90 mb-6">
-              {challenge.description}
+              {desafio.descricao}
             </p>
           </Card>
-          
+  
           {/* Vídeo do desafio */}
           <Card className="mb-8">
             <h2 className="text-xl font-bold mb-4">Vídeo explicativo</h2>
             <div className="aspect-w-16 aspect-h-9 mb-4">
               <iframe
-                src={challenge.videoUrl}
+                src={desafio.urlVideo}
                 title="Vídeo do desafio"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -211,46 +211,46 @@ const Challenge: React.FC = () => {
               ></iframe>
             </div>
           </Card>
-          
+  
           {/* Quiz */}
           <Card className="mb-8">
             <h2 className="text-xl font-bold mb-6">Quiz de compreensão</h2>
-            
-            {quizSubmitted ? (
+  
+            {quizSubmetido ? (
               <div>
                 <div className={`p-4 rounded-lg mb-6 ${
-                  quizScore && quizScore >= 2 
+                  pontuacaoQuiz && pontuacaoQuiz >= 2 
                     ? 'bg-green-500 bg-opacity-20' 
                     : 'bg-red-500 bg-opacity-20'
                 }`}>
                   <p className="font-medium">
-                    {quizScore && quizScore >= 2 
-                      ? `Parabéns! Você acertou ${quizScore} de ${questions.length} questões.` 
-                      : `Você acertou ${quizScore} de ${questions.length} questões. Reveja o conteúdo e tente novamente.`}
+                    {pontuacaoQuiz && pontuacaoQuiz >= 2 
+                      ? `Parabéns! Você acertou ${pontuacaoQuiz} de ${perguntas.length} perguntas.` 
+                      : `Você acertou ${pontuacaoQuiz} de ${perguntas.length} perguntas. Reveja o conteúdo e tente novamente.`}
                   </p>
                 </div>
-                
-                {questions.map((question, index) => (
-                  <div key={question.id} className="mb-6">
+  
+                {perguntas.map((pergunta, index) => (
+                  <div key={pergunta.id} className="mb-6">
                     <p className="font-medium mb-3">
-                      {index + 1}. {question.text}
+                      {index + 1}. {pergunta.texto}
                     </p>
-                    
+  
                     <div className="space-y-2">
-                      {question.options.map((option, optIndex) => (
+                      {pergunta.opcoes.map((opcao, optIndex) => (
                         <div 
                           key={optIndex}
                           className={`p-3 rounded-lg ${
-                            answers[question.id] === optIndex && question.correctOption === optIndex
+                            respostasQuiz[pergunta.id] === optIndex && pergunta.opcaoCorreta === optIndex
                               ? 'bg-green-500 bg-opacity-20'
-                              : answers[question.id] === optIndex && question.correctOption !== optIndex
+                              : respostasQuiz[pergunta.id] === optIndex && pergunta.opcaoCorreta !== optIndex
                                 ? 'bg-red-500 bg-opacity-20'
-                                : question.correctOption === optIndex
+                                : pergunta.opcaoCorreta === optIndex
                                   ? 'bg-green-500 bg-opacity-10'
                                   : 'bg-white bg-opacity-5'
                           }`}
                         >
-                          {option}
+                          {opcao}
                         </div>
                       ))}
                     </div>
@@ -259,66 +259,66 @@ const Challenge: React.FC = () => {
               </div>
             ) : (
               <div>
-                {questions.map((question, index) => (
-                  <div key={question.id} className="mb-6">
+                {perguntas.map((pergunta, index) => (
+                  <div key={pergunta.id} className="mb-6">
                     <p className="font-medium mb-3">
-                      {index + 1}. {question.text}
+                      {index + 1}. {pergunta.texto}
                     </p>
-                    
+  
                     <div className="space-y-2">
-                      {question.options.map((option, optIndex) => (
+                      {pergunta.opcoes.map((opcao, optIndex) => (
                         <button
                           key={optIndex}
-                          onClick={() => handleAnswerSelect(question.id, optIndex)}
+                          onClick={() => selecionarResposta(pergunta.id, optIndex)}
                           className={`w-full p-3 text-left rounded-lg transition-all ${
-                            answers[question.id] === optIndex
+                            respostasQuiz[pergunta.id] === optIndex
                               ? 'bg-secondary bg-opacity-30'
                               : 'bg-white bg-opacity-5 hover:bg-opacity-10'
                           }`}
                         >
-                          {option}
+                          {opcao}
                         </button>
                       ))}
                     </div>
                   </div>
                 ))}
-                
+  
                 <Button
-                  onClick={handleQuizSubmit}
-                  disabled={Object.keys(answers).length !== questions.length || submitting}
+                  onClick={submeterQuiz}
+                  disabled={Object.keys(respostasQuiz).length !== perguntas.length || submetendo}
                   fullWidth
                 >
-                  {submitting ? 'Enviando...' : 'Enviar respostas'}
+                  {submetendo ? 'Enviando...' : 'Enviar respostas'}
                 </Button>
               </div>
             )}
           </Card>
-          
+  
           {/* Desafio prático */}
           <Card className="mb-8">
             <h2 className="text-xl font-bold mb-4">Desafio prático</h2>
             <p className="text-white text-opacity-90 mb-6">
-              {challenge.practicalChallenge}
+              {desafio.desafioPratico}
             </p>
           </Card>
-          
+  
           {/* Botão de conclusão */}
-          {!challengeCompleted && quizSubmitted && (
+          {!desafioConcluido && quizSubmetido && (
             <div className="text-center">
               <Button
-                onClick={handleMarkAsCompleted}
-                disabled={submitting}
+                onClick={marcarComoConcluido}
+                disabled={submetendo}
                 className="px-8 py-3"
               >
-                {submitting ? 'Processando...' : 'Marcar desafio como concluído'}
+                {submetendo ? 'Processando...' : 'Marcar desafio como concluído'}
               </Button>
               <p className="text-sm text-white text-opacity-70 mt-2">
                 Ao marcar como concluído, você confirma que realizou o desafio prático.
               </p>
             </div>
           )}
-          
-          {challengeCompleted && (
+  
+          {desafioConcluido && (
             <div className="text-center">
               <div className="bg-green-500 bg-opacity-20 text-green-500 p-4 rounded-lg mb-4">
                 <p className="font-medium">

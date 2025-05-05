@@ -6,20 +6,20 @@ import Button from '../components/Button';
 import api from '../services/api';
 
 interface Challenge {
-  id: number;
-  title: string;
-  description: string;
-  completed: boolean;
-  dueDate: string;
+  desafio_id: number; // Alterado de "id"
+  titulo: string; // Alterado de "titulo"
+  descricao: string; // Alterado de "descricao"
+  concluido: boolean; // Alterado de "completed"
+  prazo: string; // Alterado de "prazo"
 }
 
 interface Progress {
-  completedChallenges: number;
-  totalChallenges: number;
-  streak: number;
-  level: number;
+  desafiosConcluidos: number; // Alterado de "completedChallenges"
+  totalDesafios: number; // Alterado de "totalChallenges"
+  sequencia: number; // Alterado de "streak"
+  nivel: number; // Alterado de "level"
   xp: number;
-  nextLevelXp: number;
+  proximoNivelXp: number; // Alterado de "nextLevelXp"
 }
 
 const Dashboard: React.FC = () => {
@@ -34,15 +34,15 @@ const Dashboard: React.FC = () => {
       setLoading(true);
       try {
         // Buscar desafio da semana
-        const challengeResponse = await api.get('/challenges/weekly');
-        setWeeklyChallenge(challengeResponse.data);
+        const challengeResponse = await api.get('/desafios/destaque');
+        setWeeklyChallenge(challengeResponse.data.desafio);
         
         // Buscar desafios recentes
-        const recentResponse = await api.get('/challenges/recent');
-        setRecentChallenges(recentResponse.data);
+        const recentResponse = await api.get('/desafios');
+        setRecentChallenges(recentResponse.data.desafios || []);
         
         // Buscar progresso
-        const progressResponse = await api.get('/users/progress');
+        const progressResponse = await api.get('/users/progresso');
         setProgress(progressResponse.data);
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
@@ -100,23 +100,23 @@ const Dashboard: React.FC = () => {
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-2xl font-bold">Desafio da Semana</h2>
                   <span className="bg-secondary bg-opacity-20 text-secondary px-3 py-1 rounded-full text-sm">
-                    {weeklyChallenge.completed ? 'Concluído' : 'Em andamento'}
+                    {weeklyChallenge.concluido ? 'Concluído' : 'Em andamento'}
                   </span>
                 </div>
                 
-                <h3 className="text-xl font-medium mb-2">{weeklyChallenge.title}</h3>
+                <h3 className="text-xl font-medium mb-2">{weeklyChallenge.titulo}</h3>
                 <p className="text-white text-opacity-80 mb-6">
-                  {weeklyChallenge.description}
+                  {weeklyChallenge.descricao}
                 </p>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-white text-opacity-70">
-                    Prazo: {new Date(weeklyChallenge.dueDate).toLocaleDateString('pt-BR')}
+                    Prazo: {new Date(weeklyChallenge.prazo).toLocaleDateString('pt-BR')}
                   </span>
                   
-                  <Link to={`/desafio/${weeklyChallenge.id}`}>
+                  <Link to={`/desafio/${weeklyChallenge.desafio_id}`}>
                     <Button>
-                      {weeklyChallenge.completed ? 'Ver detalhes' : 'Iniciar desafio'}
+                      {weeklyChallenge.concluido ? 'Ver detalhes' : 'Iniciar desafio'}
                     </Button>
                   </Link>
                 </div>
@@ -131,29 +131,29 @@ const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {recentChallenges.map((challenge) => (
                     <Card 
-                      key={challenge.id} 
+                      key={challenge.desafio_id} 
                       className={`hover:transform hover:-translate-y-1 transition-all ${
-                        challenge.completed ? 'border-l-4 border-green-500' : ''
+                        challenge.concluido? 'border-l-4 border-green-500' : ''
                       }`}
                       hoverable
                     >
-                      <Link to={`/desafio/${challenge.id}`} className="block">
-                        <h3 className="text-lg font-medium mb-2">{challenge.title}</h3>
+                      <Link to={`/desafio/${challenge.desafio_id}`} className="block">
+                        <h3 className="text-lg font-medium mb-2">{challenge.titulo}</h3>
                         <p className="text-white text-opacity-70 text-sm mb-4 line-clamp-2">
-                          {challenge.description}
+                          {challenge.descricao}
                         </p>
                         
                         <div className="flex justify-between items-center">
                           <span className="text-xs text-white text-opacity-60">
-                            {new Date(challenge.dueDate).toLocaleDateString('pt-BR')}
+                            {new Date(challenge.prazo).toLocaleDateString('pt-BR')}
                           </span>
                           
                           <span className={`px-2 py-1 rounded-full text-xs ${
-                            challenge.completed 
+                            challenge.concluido
                               ? 'bg-green-500 bg-opacity-20 text-green-500' 
                               : 'bg-yellow-500 bg-opacity-20 text-yellow-500'
                           }`}>
-                            {challenge.completed ? 'Concluído' : 'Pendente'}
+                            {challenge.concluido? 'Concluído' : 'Pendente'}
                           </span>
                         </div>
                       </Link>
@@ -179,13 +179,13 @@ const Dashboard: React.FC = () => {
                 
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm">Nível {progress.level}</span>
-                    <span className="text-sm">{progress.xp}/{progress.nextLevelXp} XP</span>
+                    <span className="text-sm">Nível {progress.nivel}</span>
+                    <span className="text-sm">{progress.xp}/{progress.proximoNivelXp} XP</span>
                   </div>
                   <div className="w-full bg-white bg-opacity-10 rounded-full h-2">
                     <div 
                       className="bg-secondary h-2 rounded-full" 
-                      style={{ width: `${(progress.xp / progress.nextLevelXp) * 100}%` }}
+                      style={{ width: `${(progress.xp / progress.proximoNivelXp) * 100}%` }}
                     ></div>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-white bg-opacity-5 rounded-lg p-4 text-center">
                     <span className="block text-2xl font-bold text-secondary mb-1">
-                      {progress.completedChallenges}
+                      {progress.desafiosConcluidos}
                     </span>
                     <span className="text-sm text-white text-opacity-70">
                       Desafios concluídos
@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
                   
                   <div className="bg-white bg-opacity-5 rounded-lg p-4 text-center">
                     <span className="block text-2xl font-bold text-secondary mb-1">
-                      {progress.streak}
+                      {progress.sequencia}
                     </span>
                     <span className="text-sm text-white text-opacity-70">
                       Dias de sequência

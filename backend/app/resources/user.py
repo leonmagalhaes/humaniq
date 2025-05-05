@@ -134,3 +134,56 @@ def obter_progresso():
         'message': 'Progresso obtido com sucesso',
         'progresso': progresso
     }), 200
+
+@user_bp.route('/challenge-history', methods=['GET'])
+@jwt_required()
+def obter_historico_desafios():
+    """
+    Endpoint para obter o histórico de desafios do usuário
+    ---
+    Requer:
+      - Token de acesso JWT válido
+    Retorna:
+      - Lista de desafios concluídos pelo usuário
+    """
+    current_user_id = get_jwt_identity()
+    
+    # Obter resultados dos desafios concluídos
+    resultados = Resultado.query.filter_by(usuario_id=int(current_user_id), status='concluído').all()
+    
+    historico = [
+        {
+            'id': resultado.desafio_id,
+            'titulo': resultado.desafio.titulo,
+            'data_conclusao': resultado.data_conclusao.isoformat(),
+            'pontuacao': resultado.pontuacao
+        }
+        for resultado in resultados
+    ]
+    
+    return jsonify({
+        'message': 'Histórico de desafios obtido com sucesso',
+        'historico': historico
+    }), 200
+
+@user_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    """
+    Endpoint para obter informações do usuário atual
+    ---
+    Requer:
+    - Token de acesso JWT válido
+    Retorna:
+    - Informações do usuário atual
+    """
+    current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(int(current_user_id))
+
+    if not usuario:
+        return jsonify({'message': 'Usuário não encontrado'}), 404
+
+    return jsonify({
+        'message': 'Usuário obtido com sucesso',
+        'usuario': usuario.to_dict()
+    }), 200

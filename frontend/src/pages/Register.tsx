@@ -7,15 +7,15 @@ import Card from '../components/Card';
 import { useAuth } from '../contexts/AuthContext';
 
 const Register: React.FC = () => {
-  const [name, setName] = useState('');
+  const [nome, setNome] = useState(''); // Alterado de "name" para "nome"
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [senha, setSenha] = useState(''); // Alterado de "password" para "senha"
+  const [confirmarSenha, setConfirmarSenha] = useState(''); // Alterado de "confirmPassword" para "confirmarSenha"
   const [formErrors, setFormErrors] = useState({
-    name: '',
+    nome: '', // Alterado de "name" para "nome"
     email: '',
-    password: '',
-    confirmPassword: ''
+    senha: '', // Alterado de "password" para "senha"
+    confirmarSenha: '' // Alterado de "confirmPassword" para "confirmarSenha"
   });
   
   const { register, user, loading, error, clearError } = useAuth();
@@ -31,18 +31,18 @@ const Register: React.FC = () => {
   const validateForm = () => {
     let valid = true;
     const errors = {
-      name: '',
+      nome: '', // Alterado de "name" para "nome"
       email: '',
-      password: '',
-      confirmPassword: ''
+      senha: '', // Alterado de "password" para "senha"
+      confirmarSenha: '' // Alterado de "confirmPassword" para "confirmarSenha"
     };
     
     // Validação de nome
-    if (!name) {
-      errors.name = 'O nome é obrigatório';
+    if (!nome) {
+      errors.nome = 'O nome é obrigatório';
       valid = false;
-    } else if (name.length < 3) {
-      errors.name = 'O nome deve ter pelo menos 3 caracteres';
+    } else if (nome.length < 3) {
+      errors.nome = 'O nome deve ter pelo menos 3 caracteres';
       valid = false;
     }
     
@@ -55,18 +55,19 @@ const Register: React.FC = () => {
       valid = false;
     }
     
-    // Validação de senha
-    if (!password) {
-      errors.password = 'A senha é obrigatória';
+     // Validação de senha
+     if (!senha) {
+      errors.senha = 'A senha é obrigatória';
       valid = false;
-    } else if (password.length < 6) {
-      errors.password = 'A senha deve ter pelo menos 6 caracteres';
+    } else if (senha.length < 6) {
+      errors.senha = 'A senha deve ter pelo menos 6 caracteres';
       valid = false;
     }
     
+
     // Validação de confirmação de senha
-    if (password !== confirmPassword) {
-      errors.confirmPassword = 'As senhas não coincidem';
+    if (senha !== confirmarSenha) {
+      errors.confirmarSenha = 'As senhas não coincidem';
       valid = false;
     }
     
@@ -77,9 +78,13 @@ const Register: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+  
     if (validateForm()) {
-      await register(name, email, password);
+      try {
+        await register(nome, email, senha); // Ajustado para usar "nome" e "senha"
+      } catch (err: any) {
+        console.error('Erro ao registrar:', err);
+      }
     }
   };
   
@@ -89,25 +94,25 @@ const Register: React.FC = () => {
         <div className="max-w-md mx-auto">
           <Card className="mb-8">
             <h1 className="text-2xl font-bold mb-6 text-center">Criar uma conta no HUMANIQ</h1>
-            
+
             {error && (
               <div className="bg-red-500 bg-opacity-20 border border-red-500 text-red-500 px-4 py-3 rounded mb-6">
                 {error}
               </div>
             )}
-            
+
             <form onSubmit={handleSubmit}>
               <Input
                 type="text"
-                name="name"
+                name="nome" // Alterado de "name" para "nome"
                 label="Nome completo"
                 placeholder="Seu nome completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                error={formErrors.name}
+                value={nome} // Alterado de "name" para "nome"
+                onChange={(e) => setNome(e.target.value)} // Alterado de "setName" para "setNome"
+                error={formErrors.nome} // Alterado de "formErrors.name" para "formErrors.nome"
                 required
               />
-              
+
               <Input
                 type="email"
                 name="email"
@@ -118,29 +123,29 @@ const Register: React.FC = () => {
                 error={formErrors.email}
                 required
               />
-              
+
               <Input
                 type="password"
-                name="password"
+                name="senha" // Alterado de "password" para "senha"
                 label="Senha"
                 placeholder="Crie uma senha forte"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                error={formErrors.password}
+                value={senha} // Alterado de "password" para "senha"
+                onChange={(e) => setSenha(e.target.value)} // Alterado de "setPassword" para "setSenha"
+                error={formErrors.senha} // Alterado de "formErrors.password" para "formErrors.senha"
                 required
               />
-              
+
               <Input
                 type="password"
-                name="confirmPassword"
+                name="confirmarSenha" // Alterado de "confirmPassword" para "confirmarSenha"
                 label="Confirmar senha"
                 placeholder="Confirme sua senha"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                error={formErrors.confirmPassword}
+                value={confirmarSenha} // Alterado de "confirmPassword" para "confirmarSenha"
+                onChange={(e) => setConfirmarSenha(e.target.value)} // Alterado de "setConfirmPassword" para "setConfirmarSenha"
+                error={formErrors.confirmarSenha} // Alterado de "formErrors.confirmPassword" para "formErrors.confirmarSenha"
                 required
               />
-              
+
               <div className="mb-6">
                 <p className="text-sm text-white text-opacity-70">
                   Ao se cadastrar, você concorda com nossos{' '}
@@ -154,7 +159,7 @@ const Register: React.FC = () => {
                   .
                 </p>
               </div>
-              
+
               <Button
                 type="submit"
                 variant="primary"
@@ -165,7 +170,7 @@ const Register: React.FC = () => {
               </Button>
             </form>
           </Card>
-          
+
           <div className="text-center">
             <p className="text-white text-opacity-80">
               Já tem uma conta?{' '}

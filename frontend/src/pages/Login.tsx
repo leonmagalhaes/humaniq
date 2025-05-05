@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -17,12 +17,9 @@ const Login: React.FC = () => {
   const { login, user, loading, error, clearError } = useAuth();
   const navigate = useNavigate();
   
-  useEffect(() => {
-    // Se o usuário já estiver autenticado, redireciona para o dashboard
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
+  if (user && !loading) {
+    return <Navigate to="/dashboard" replace />;
+  }
   
   const validateForm = () => {
     let valid = true;
@@ -53,9 +50,13 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
-    
+  
     if (validateForm()) {
-      await login(email, password);
+      try {
+        await login(email, password); // Certifique-se de que `password` é enviado como `senha`
+      } catch (err: any) {
+        console.error('Erro ao fazer login:', err);
+      }
     }
   };
   

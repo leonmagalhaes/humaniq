@@ -26,78 +26,104 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadAttempted, setLoadAttempted] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
-      const token = localStorage.getItem('token');
+      // Verificar se já tentou carregar o usuário
+      if (loadAttempted) return;
       
-      if (token) {
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        try {
-          const response = await api.get('/users/me');
-          setUser(response.data);
-        } catch (error) {
-          console.error('Erro ao carregar usuário:', error);
-          localStorage.removeItem('token');
-        }
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setLoading(false);
+        setLoadAttempted(true);
+        return;
       }
       
-      setLoading(false);
+      setLoading(true);
+      try {
+        const response = await api.get('/users/me');
+        setUser(response.data.usuario);
+      } catch (error) {
+        console.error('Erro ao carregar usuário:', error);
+        // Limpar tokens se a autenticação falhar
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      } finally {
+        setLoading(false);
+        setLoadAttempted(true);
+      }
     };
     
     loadUser();
-  }, []);
+  }, [loadAttempted]);
 
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/login', { 
-        email, 
-        senha: password  // Alterado para 'senha'
+      const response = await api.post('/auth/login', { // Ajustado para `/login`
+        email,
+        senha: password, // Certifique-se de usar "senha" para alinhar com o back-end
       });
-      
-      const { access_token, usuario } = response.data;
-      
-      localStorage.setItem('token', access_token);
+  
+      const { access_token, refresh_token, usuario } = response.data;
+  
+      // Armazena os tokens no localStorage
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token); // Adicionado armazenamento do refresh_token
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
+  
       setUser(usuario);
       setError(null);
     } catch (error: any) {
       console.error('Erro ao fazer login:', error);
-      setError(error.response?.data?.message || 'Erro ao fazer login. Verifique suas credenciais.');
+      if (error.response?.status === 400) {
+        setError('Preencha todos os campos obrigatórios.');
+      } else if (error.response?.status === 401) {
+        setError('Email ou senha inválidos.');
+      } else {
+        setError('Ocorreu um erro. Tente novamente mais tarde.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (nome: string, email: string, senha: string) => {
     try {
       setLoading(true);
       const response = await api.post('/auth/register', {
-        nome: name,     // Alterado de 'name' para 'nome'
-        email,          // Este já está correto
-        senha: password // Alterado de 'password' para 'senha'
+        nome,     // Alterado de 'name' para 'nome'
+        email,    // Este já está correto
+        senha     // Alterado de 'password' para 'senha'
       });
-      
+  
       const { access_token, refresh_token, usuario } = response.data;
-      
-      localStorage.setItem('token', access_token);
+  
+      // Armazena os tokens no localStorage
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token); // Adicionado armazenamento do refresh_token
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      
+  
       setUser(usuario);
       setError(null);
     } catch (error: any) {
       console.error('Erro ao registrar:', error);
-      setError(error.response?.data?.message || 'Erro ao criar conta. Tente novamente.');
+      if (error.response?.status === 400) {
+        setError('Preencha todos os campos obrigatórios.');
+      } else if (error.response?.status === 409) {
+        setError('Email já cadastrado. Utilize outro email.');
+      } else {
+        setError('Erro ao criar conta. Tente novamente mais tarde.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };

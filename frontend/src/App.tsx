@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 // Importando páginas
 import LandingPage from './pages/LandingPage';
@@ -11,13 +11,20 @@ import Dashboard from './pages/Dashboard';
 import Challenge from './pages/Challenge';
 import Profile from './pages/Profile';
 
-// Componente para rotas protegidas
 const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const isAuthenticated = localStorage.getItem('token') !== null;
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Carregando...</div>;
+  if (!user) return <Navigate to="/login" replace />;
   
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  return children;
+};
+
+const PublicRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return <div>Carregando...</div>;
+  if (user) return <Navigate to="/dashboard" replace />;
   
   return children;
 };
@@ -28,8 +35,16 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/cadastro" element={<Register />} />
+          <Route path="/login" element={
+            <PublicRoute>
+             <Login />
+            </PublicRoute>
+          } />
+          <Route path="/cadastro" element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          } />
           <Route path="/avaliacao-inicial" element={
             <ProtectedRoute>
               <Assessment />

@@ -6,7 +6,7 @@ from app import db
 
 desafio_bp = Blueprint('desafio', __name__)
 
-@desafio_bp.route('/', methods=['GET'])
+@desafio_bp.route('', methods=['GET'])
 @jwt_required()
 def listar_desafios():
     """
@@ -87,7 +87,12 @@ def obter_desafio(desafio_id):
     
     # Adicionar informações sobre o progresso do usuário neste desafio
     if resultado:
-        desafio_dict['progresso'] = resultado.to_dict()
+        desafio_dict['progresso'] = {
+            'desafioConcluido': resultado.status == 'concluído',
+            'dataInicio': resultado.data_inicio.isoformat(),
+            'dataConclusao': resultado.data_conclusao.isoformat() if resultado.data_conclusao else None,
+            'pontuacaoQuiz': resultado.pontuacao
+        }
     else:
         desafio_dict['progresso'] = None
     
@@ -152,15 +157,15 @@ def submeter_desafio(desafio_id):
       - Token de acesso JWT válido
     Parâmetros:
       - desafio_id: ID do desafio
-      - respostas_quiz: Objeto JSON com as respostas do quiz
-      - resposta_pratica: Texto com a resposta do desafio prático
+      - respostasQuiz: Objeto JSON com as respostas do quiz
+      - respostaPratica: Texto com a resposta do desafio prático
     Retorna:
       - Resultado da submissão com pontuação
     """
     current_user_id = get_jwt_identity()
     data = request.get_json()
     
-    if not data or 'respostas_quiz' not in data or 'resposta_pratica' not in data:
+    if not data or 'respostasQuiz' not in data or 'respostaPratica' not in data:
         return jsonify({'message': 'Dados incompletos. Respostas do quiz e do desafio prático são obrigatórias.'}), 400
     
     # Verificar se o desafio existe
@@ -179,23 +184,28 @@ def submeter_desafio(desafio_id):
         return jsonify({'message': 'Desafio já foi concluído anteriormente'}), 400
     
     # Calcular pontuação do quiz
-    respostas_quiz = data['respostas_quiz']
+    respostasQuiz = data['respostasQuiz']
     perguntas_quiz = desafio.perguntas
     
-    pontuacao_quiz = calcular_pontuacao_quiz(respostas_quiz, perguntas_quiz)
+    pontuacao_quiz = calcular_pontuacao_quiz(respostasQuiz, perguntas_quiz)
     
     # Atualizar o resultado
     resultado.status = 'concluído'
-    resultado.data_conclusao = datetime.utcnow()
-    resultado.respostas_quiz = respostas_quiz
-    resultado.resposta_pratica = data['resposta_pratica']
+    resultado.data_conclusao = datetime.now(datetime.timezone.utc)
+    resultado.respostasQuiz = respostasQuiz
+    resultado.respostaPratica = data['respostaPratica']
     resultado.pontuacao = pontuacao_quiz
     
     db.session.commit()
     
     return jsonify({
         'message': 'Desafio submetido com sucesso',
-        'resultado': resultado.to_dict()
+        'resultado': {
+            'desafioConcluido': resultado.status == 'concluído',
+            'dataInicio': resultado.data_inicio.isoformat(),
+            'dataConclusao': resultado.data_conclusao.isoformat(),
+            'pontuacaoQuiz': resultado.pontuacao
+        }
     }), 200
 
 @desafio_bp.route('/destaque', methods=['GET'])
@@ -234,16 +244,63 @@ def obter_desafio_destaque():
         'desafio': desafio_dict
     }), 200
 
-def calcular_pontuacao_quiz(respostas, perguntas):
+@desafio_bp.route('/<int:desafio_id>/perguntas', methods=['GET'])
+@jwt_required()
+def obter_perguntas(desafio_id):
+    """
+    Endpoint para obter as perguntas do quiz de um desafio
+    """
+    desafio = Desafio.query.get(desafio_id)
+    if not desafio:
+        return jsonify({'message': 'Desafio não encontrado'}), 404
+    
+    perguntas = desafio.perguntas  # Supondo que `perguntas` seja uma relação no modelo
+    return jsonify({'perguntas': [p.to_dict() for p in perguntas]}), 200
+
+@desafio_bp.route('/<int:desafio_id>/resultado-quiz', methods=['GET'])
+@jwt_required()
+def obter_resultado_quiz(desafio_id):
+    """
+    Endpoint para obter o resultado do quiz de um desafio
+    """
+    current_user_id = get_jwt_identity()
+    resultado = Resultado.query.filter_by(usuario_id=current_user_id, desafio_id=desafio_id).first()
+    if not resultado:
+        return jsonify({'message': 'Resultado não encontrado'}), 404
+    
+    return jsonify({
+        'desafioConcluido': resultado.status == 'concluído',
+        'pontuacaoQuiz': resultado.pontuacao
+    }), 200
+
+@desafio_bp.route('/<int:desafio_id>/concluir', methods=['POST'])
+@jwt_required()
+def concluir_desafio(desafio_id):
+    """
+    Endpoint para marcar um desafio como concluído
+    """
+    current_user_id = get_jwt_identity()
+    resultado = Resultado.query.filter_by(usuario_id=current_user_id, desafio_id=desafio_id).first()
+    if not resultado:
+        return jsonify({'message': 'Desafio não iniciado'}), 400
+    
+    resultado.status = 'concluído'
+    resultado.data_conclusao = datetime.utcnow()
+    db.session.commit()
+    
+    return jsonify({'message': 'Desafio concluído com sucesso'}), 200
+
+
+def calcular_pontuacao_quiz(respostasQuiz, perguntas):
     """
     Função auxiliar para calcular a pontuação do quiz
     """
     # Implementação simplificada: cada resposta correta vale 10 pontos
-    pontuacao = 0
+    pontuacaoQuiz = 0
     
     for pergunta in perguntas:
         id_pergunta = str(pergunta['id'])
-        if id_pergunta in respostas and respostas[id_pergunta] == pergunta['resposta_correta']:
-            pontuacao += 10
+        if id_pergunta in respostasQuiz and respostasQuiz[id_pergunta] == pergunta['resposta_correta']:
+            pontuacaoQuiz += 10
     
-    return pontuacao
+    return pontuacaoQuiz
