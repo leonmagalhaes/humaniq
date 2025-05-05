@@ -247,15 +247,12 @@ def obter_desafio_destaque():
 @desafio_bp.route('/<int:desafio_id>/perguntas', methods=['GET'])
 @jwt_required()
 def obter_perguntas(desafio_id):
-    """
-    Endpoint para obter as perguntas do quiz de um desafio
-    """
     desafio = Desafio.query.get(desafio_id)
     if not desafio:
         return jsonify({'message': 'Desafio não encontrado'}), 404
     
-    perguntas = desafio.perguntas  # Supondo que `perguntas` seja uma relação no modelo
-    return jsonify({'perguntas': [p.to_dict() for p in perguntas]}), 200
+    perguntas = desafio.perguntas  # já é uma lista/dict, não precisa .to_dict()
+    return jsonify({'perguntas': perguntas}), 200
 
 @desafio_bp.route('/<int:desafio_id>/resultado-quiz', methods=['GET'])
 @jwt_required()

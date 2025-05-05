@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from app import create_app, db
 from app.models import Usuario, PerguntaTeste, Desafio
+from datetime import datetime, timedelta, timezone
 
 def seed_database():
     """
@@ -45,6 +46,7 @@ def seed_database():
         print(f"Criadas {len(perguntas)} perguntas para o teste inicial.")
     
     # Criar desafios de exemplo
+    prazo = datetime.now(timezone.utc) + timedelta(days=7)
     if Desafio.query.count() == 0:
         print("Criando desafios de exemplo...")
         desafios = [
@@ -53,6 +55,7 @@ def seed_database():
                 descricao="Aprenda a se comunicar de forma clara, direta e respeitosa, expressando suas ideias e sentimentos sem agredir ou submeter-se aos outros.",
                 video_url="https://www.youtube.com/embed/exemplo1",
                 status="ativo",
+                prazo=prazo,
                 perguntas=[
                     {"id": 1, "texto": "Qual é o principal objetivo da comunicação assertiva?", "opcoes": ["Impor sua opinião", "Expressar-se sem agredir ou submeter-se", "Evitar conflitos a todo custo", "Falar o mínimo possível"], "resposta_correta": "Expressar-se sem agredir ou submeter-se"},
                     {"id": 2, "texto": "Qual destas NÃO é uma característica da comunicação assertiva?", "opcoes": ["Clareza", "Respeito", "Manipulação", "Honestidade"], "resposta_correta": "Manipulação"},
@@ -65,6 +68,7 @@ def seed_database():
                 descricao="Desenvolva sua capacidade de reconhecer e gerenciar suas próprias emoções e compreender as emoções dos outros.",
                 video_url="https://www.youtube.com/embed/exemplo2",
                 status="ativo",
+                prazo=prazo,
                 perguntas=[
                     {"id": 1, "texto": "Quais são os quatro componentes principais da inteligência emocional segundo Daniel Goleman?", "opcoes": ["Autoconsciência, autogestão, consciência social e gestão de relacionamentos", "Felicidade, tristeza, raiva e medo", "QI, personalidade, motivação e sorte", "Pensamento, sentimento, intuição e sensação"], "resposta_correta": "Autoconsciência, autogestão, consciência social e gestão de relacionamentos"},
                     {"id": 2, "texto": "Por que a inteligência emocional é importante no ambiente de trabalho?", "opcoes": ["Não é importante, apenas o conhecimento técnico importa", "Ajuda a manipular colegas", "Melhora o trabalho em equipe e a liderança", "Permite ignorar problemas interpessoais"], "resposta_correta": "Melhora o trabalho em equipe e a liderança"},
@@ -77,6 +81,7 @@ def seed_database():
                 descricao="Aprenda a se colocar no lugar do outro e a ouvir verdadeiramente, sem julgamentos ou interrupções.",
                 video_url="https://www.youtube.com/embed/exemplo3",
                 status="ativo",
+                prazo=prazo,
                 perguntas=[
                     {"id": 1, "texto": "O que é escuta ativa?", "opcoes": ["Ouvir enquanto faz outras atividades", "Ouvir atentamente, demonstrando interesse e compreensão", "Concordar com tudo que a pessoa diz", "Interromper para dar conselhos"], "resposta_correta": "Ouvir atentamente, demonstrando interesse e compreensão"},
                     {"id": 2, "texto": "Qual destas NÃO é uma técnica de escuta ativa?", "opcoes": ["Parafrasear o que foi dito", "Fazer perguntas para clarificar", "Manter contato visual", "Pensar na sua resposta enquanto a pessoa fala"], "resposta_correta": "Pensar na sua resposta enquanto a pessoa fala"},

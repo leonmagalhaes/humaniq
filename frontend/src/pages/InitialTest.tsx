@@ -32,7 +32,7 @@ const InitialTest: React.FC = () => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await api.get('/perguntas');
+        const response = await api.get('/assessments/perguntas');
         setQuestions(response.data.perguntas);
       } catch (error) {
         setError('Não foi possível carregar as perguntas. Tente novamente mais tarde.');
@@ -97,7 +97,7 @@ const InitialTest: React.FC = () => {
     setError('');
 
     try {
-      await api.post('/submeter', { respostas: answers });
+      await api.post('/assessments/submeter', { respostas: answers })
       navigate('/dashboard', { state: { message: 'Teste inicial concluído com sucesso!' } });
     } catch (error) {
       setError('Ocorreu um erro ao enviar suas respostas. Tente novamente.');

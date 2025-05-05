@@ -23,7 +23,7 @@ interface Pergunta {
 }
 
 const Challenge: React.FC = () => {
-  const { desafio_id } = useParams<{ desafio_id: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const [desafio, setDesafio] = useState<Desafio | null>(null);
@@ -37,21 +37,22 @@ const Challenge: React.FC = () => {
   const [erro, setErro] = useState<string | null>(null);
   
   useEffect(() => {
+    console.log('desafio_id:', id);
     const buscarDadosDesafio = async () => {
       setCarregando(true);
       try {
         // Buscar dados do desafio
-        const respostaDesafio = await api.get(`/desafio/${desafio_id}`);
+        const respostaDesafio = await api.get(`/desafios/${id}`);
         setDesafio(respostaDesafio.data.desafio);
         setDesafioConcluido(respostaDesafio.data.desafio.concluido);
         
         // Buscar perguntas do quiz
-        const respostaPerguntas = await api.get(`/desafio/${desafio_id}/perguntas`);
+        const respostaPerguntas = await api.get(`/desafios/${id}/perguntas`);
         setPerguntas(respostaPerguntas.data.perguntas);
         
         // Verificar se o quiz já foi respondido
         try {
-          const respostaQuiz = await api.get(`/desafio/${desafio_id}/resultado-quiz`);
+          const respostaQuiz = await api.get(`/desafios/${id}/resultado-quiz`);
           if (respostaQuiz.data.concluido) {
             setQuizSubmetido(true);
             setPontuacaoQuiz(respostaQuiz.data.pontuacao);
@@ -67,10 +68,10 @@ const Challenge: React.FC = () => {
       }
     };
     
-    if (desafio_id) {
+    if (id) {
       buscarDadosDesafio();
     }
-  }, [desafio_id]);
+  }, [id]);
   
   const selecionarResposta = (idPergunta: number, indiceOpcao: number) => {
     setRespostasQuiz({
@@ -89,7 +90,7 @@ const Challenge: React.FC = () => {
     setSubmetendo(true);
     
     try {
-      const resposta = await api.post(`/desafio/${desafio_id}/submeter`, { respostas_quiz: respostasQuiz });
+      const resposta = await api.post(`/desafios/${id}/submeter`, { respostas_quiz: respostasQuiz });
       setQuizSubmetido(true);
       setPontuacaoQuiz(resposta.data.resultado.pontuacao);
     } catch (error) {
@@ -104,7 +105,7 @@ const Challenge: React.FC = () => {
     setSubmetendo(true);
     
     try {
-      await api.post(`/desafio/${desafio_id}/concluir`);
+      await api.post(`/desafios/${id}/concluir`);
       setDesafioConcluido(true);
       
       // Redirecionar para o dashboard após um breve delay

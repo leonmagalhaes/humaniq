@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -61,7 +61,9 @@ class Desafio(db.Model):
     descricao = db.Column(db.Text, nullable=False)
     video_url = db.Column(db.String(255))
     status = db.Column(db.String(20), default='ativo')  # ativo, inativo
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    data_criacao = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    prazo = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc) + timedelta(days=7))
+
     
     # Perguntas do quiz relacionadas ao desafio
     perguntas = db.Column(db.JSON)
@@ -74,12 +76,13 @@ class Desafio(db.Model):
     
     def to_dict(self):
         return {
-            'id': self.id,
+            'desafio_id': self.id,
             'titulo': self.titulo,
             'descricao': self.descricao,
             'video_url': self.video_url,
             'status': self.status,
             'data_criacao': self.data_criacao.isoformat(),
+            'prazo': self.prazo.isoformat() if self.prazo else None,
             'perguntas': self.perguntas,
             'desafio_pratico': self.desafio_pratico
         }
