@@ -94,32 +94,7 @@ Este comando executará o script de seed que populará o banco de dados SQLite c
   - Visualização de métricas e KPIs
   - Gráficos e relatórios interativos
 
-## Estrutura do Projeto
 
-```
-humaniq/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── models/
-│   │   ├── resources/
-│   │   └── static/
-│   ├── config.py
-│   ├── run.py
-│   ├── seed.py
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── Dockerfile
-├── docker-compose.yml
-├── run.sh
-└── README.md
-```
 
 ## Parando os Serviços
 
