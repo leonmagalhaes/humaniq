@@ -280,11 +280,21 @@ def concluir_desafio(desafio_id):
     resultado = Resultado.query.filter_by(usuario_id=current_user_id, desafio_id=desafio_id).first()
     if not resultado:
         return jsonify({'message': 'Desafio não iniciado'}), 400
-    
+
+    if resultado.status == 'concluído':
+        return jsonify({'message': 'Desafio já foi concluído anteriormente'}), 200
+
     resultado.status = 'concluído'
     resultado.data_conclusao = datetime.utcnow()
+
+    # Adicionar XP ao usuário
+    usuario = Usuario.query.get(current_user_id)
+    if usuario:
+        usuario.adicionar_xp(10)  # Defina o valor de XP por desafio concluído (exemplo: 50)
+        db.session.add(usuario)
+
     db.session.commit()
-    
+
     return jsonify({'message': 'Desafio concluído com sucesso'}), 200
 
 

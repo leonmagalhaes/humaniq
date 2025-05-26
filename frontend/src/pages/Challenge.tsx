@@ -434,7 +434,10 @@ const Challenge: React.FC = () => {
                 </p>
               </div>
               <Button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => {
+                  navigate('/dashboard');
+                  window.location.reload();
+                }}
                 variant="outline"
               >
                 Voltar para o Dashboard

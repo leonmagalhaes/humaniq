@@ -183,6 +183,26 @@ const Profile: React.FC = () => {
     checkInitialTest();
   }, []);
   
+  // Novo efeito para buscar o histórico de desafios
+  useEffect(() => {
+    const fetchChallengeHistory = async () => {
+      try {
+        const response = await api.get('/users/challenge-history');
+        setChallengeHistory(
+          response.data.historico.map((item: any) => ({
+            id: item.id,
+            title: item.titulo,
+            completedAt: item.data_conclusao, // <-- agora o campo bate
+            score: item.pontuacao
+          }))
+        ); // ou .challengeHistory, conforme o backend
+      } catch (error) {
+        console.error('Erro ao carregar histórico de desafios:', error);
+      }
+    };
+    fetchChallengeHistory();
+  }, []);
+  
   const validateForm = () => {
     let valid = true;
     const errors = {

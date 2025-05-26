@@ -29,7 +29,7 @@ class Usuario(db.Model):
     
     def calcular_proximo_nivel_xp(self):
         """Calcula XP necessário para o próximo nível"""
-        return self.nivel * 100  # Por exemplo: Nível 1 = 100 XP, Nível 2 = 200 XP, etc.
+        return self.nivel * 20  
     
     def calcular_desafios_concluidos(self):
         """Calcula número de desafios concluídos"""
@@ -79,13 +79,12 @@ class Usuario(db.Model):
     def adicionar_xp(self, quantidade):
         """Adiciona XP e atualiza nível se necessário"""
         self.xp += quantidade
-        
+
         # Verifica se deve subir de nível
         while self.xp >= self.calcular_proximo_nivel_xp():
+            self.xp -= self.calcular_proximo_nivel_xp()
             self.nivel += 1
-        
-        # Note: The commit should be done by the caller, not here
-        # This allows for transaction management at a higher level
+
         return self.nivel
 
 class Avaliacao(db.Model):

@@ -14,12 +14,12 @@ interface Challenge {
 }
 
 interface Progress {
-  desafiosConcluidos: number; // Alterado de "completedChallenges"
+  desafios_concluidos: number; // Alterado de "completedChallenges"
   totalDesafios: number; // Alterado de "totalChallenges"
   sequencia: number; // Alterado de "streak"
   nivel: number; // Alterado de "level"
   xp: number;
-  proximoNivelXp: number; // Alterado de "nextLevelXp"
+  proximo_nivel_xp: number;
 }
 
 const Dashboard: React.FC = () => {
@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
         
         // Buscar progresso
         const progressResponse = await api.get('/users/progresso');
-        setProgress(progressResponse.data);
+        setProgress(progressResponse.data.progresso);
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
         setError('Não foi possível carregar os dados. Tente novamente mais tarde.');
@@ -226,12 +226,12 @@ const Dashboard: React.FC = () => {
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm">Nível {progress.nivel}</span>
-                    <span className="text-sm">{progress.xp}/{progress.proximoNivelXp} XP</span>
+                    <span className="text-sm">{progress.xp}/{progress.proximo_nivel_xp} XP</span>
                   </div>
                   <div className="w-full bg-white bg-opacity-10 rounded-full h-2">
                     <div 
                       className="bg-secondary h-2 rounded-full" 
-                      style={{ width: `${(progress.xp / progress.proximoNivelXp) * 100}%` }}
+                      style={{ width: `${(progress.xp / progress.proximo_nivel_xp) * 100}%` }}
                     ></div>
                   </div>
                 </div>
@@ -239,7 +239,7 @@ const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4 mb-6">
                   <div className="bg-white bg-opacity-5 rounded-lg p-4 text-center">
                     <span className="block text-2xl font-bold text-secondary mb-1">
-                      {progress.desafiosConcluidos}
+                      {progress.desafios_concluidos}
                     </span>
                     <span className="text-sm text-white text-opacity-70">
                       Desafios concluídos
