@@ -8,20 +8,14 @@ assessment_bp = Blueprint('assessment', __name__)
 @assessment_bp.route('/perguntas', methods=['GET'])
 @jwt_required()
 def obter_perguntas():
-    """
-    Endpoint para obter as perguntas do teste inicial
-    ---
-    Requer:
-      - Token de acesso JWT válido
-    Retorna:
-      - Lista de perguntas do teste inicial
-    """
-    # Obter todas as perguntas ordenadas
     perguntas = PerguntaTeste.query.order_by(PerguntaTeste.ordem).all()
-    
     return jsonify({
-        'message': 'Perguntas obtidas com sucesso',
-        'perguntas': [pergunta.to_dict() for pergunta in perguntas]
+        'perguntas': [{
+            'id': p.id,
+            'texto': p.texto,
+            'categoria': p.categoria,
+            'ordem': p.ordem
+        } for p in perguntas]
     }), 200
 
 @assessment_bp.route('/submeter', methods=['POST'])
@@ -80,18 +74,10 @@ def submeter_avaliacao():
 @assessment_bp.route('/historico', methods=['GET'])
 @jwt_required()
 def obter_historico():
-    """
-    Endpoint para obter o histórico de avaliações do usuário
-    ---
-    Requer:
-      - Token de acesso JWT válido
-    Retorna:
-      - Lista de avaliações realizadas pelo usuário
-    """
     current_user_id = get_jwt_identity()
-    
-    # Obter todas as avaliações do usuário ordenadas por data (mais recente primeiro)
-    avaliacoes = Avaliacao.query.filter_by(usuario_id=int(current_user_id)).order_by(Avaliacao.data.desc()).all()
+    avaliacoes = Avaliacao.query.filter_by(
+        usuario_id=int(current_user_id)
+    ).order_by(Avaliacao.data.desc()).all()
     
     return jsonify({
         'message': 'Histórico obtido com sucesso',

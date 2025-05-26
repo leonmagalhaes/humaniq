@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -23,6 +23,9 @@ interface Progress {
 }
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [initialTestDone, setInitialTestDone] = useState<boolean>(true); // Estado para verificar se o teste foi feito
+  const [showPopup, setShowPopup] = useState<boolean>(false);
   const [weeklyChallenge, setWeeklyChallenge] = useState<Challenge | null>(null);
   const [recentChallenges, setRecentChallenges] = useState<Challenge[]>([]);
   const [progress, setProgress] = useState<Progress | null>(null);
@@ -55,6 +58,23 @@ const Dashboard: React.FC = () => {
     fetchDashboardData();
   }, []);
   
+  useEffect(() => {
+    const checkInitialTest = async () => {
+      try {
+        const response = await api.get('/assessments/historico');
+        // Se não houver histórico, significa que o teste não foi feito
+        setInitialTestDone(response.data.avaliacoes.length > 0);
+        if (response.data.avaliacoes.length === 0) {
+          setShowPopup(true);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar o status do teste inicial:', error);
+      }
+    };
+
+    checkInitialTest();
+  }, []);
+
   if (loading) {
     return (
       <Layout>
@@ -89,6 +109,27 @@ const Dashboard: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        {showPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
+              <h2 className="text-2xl font-bold mb-4 text-primary">Bem-vindo ao HumaniQ!</h2>
+              <p className="mb-4 text-gray-700">
+                Para personalizarmos sua experiência, precisamos que você complete um breve teste inicial.
+                Isso nos ajudará a entender melhor suas habilidades e oferecer desafios mais relevantes.
+              </p>
+              <p className="mb-6 text-sm text-gray-600">
+                O teste leva apenas alguns minutos e é fundamental para seu desenvolvimento.
+              </p>
+              <Button onClick={() => navigate('/avaliacao-inicial')} variant="primary" className="mb-4 w-full">
+                Começar Teste Inicial
+              </Button>
+              <Button onClick={() => setShowPopup(false)} variant="outline" className="w-full">
+                Fazer depois
+              </Button>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Coluna principal */}
           <div className="lg:col-span-2">

@@ -4,46 +4,86 @@ from app import create_app, db
 from app.models import Usuario, PerguntaTeste, Desafio
 from datetime import datetime, timedelta, timezone
 
+def seed_perguntas_teste():
+    if PerguntaTeste.query.count() == 0:
+        print("Criando perguntas do teste inicial...")
+        perguntas = [
+            PerguntaTeste(
+                texto="Eu me sinto confortável ao expressar minhas opiniões em grupo",
+                categoria="Comunicação",
+                ordem=1
+            ),
+            PerguntaTeste(
+                texto="Consigo identificar facilmente como as outras pessoas estão se sentindo",
+                categoria="Empatia",
+                ordem=2
+            ),
+            PerguntaTeste(
+                texto="Mantenho a calma em situações de pressão ou conflito",
+                categoria="Inteligência Emocional",
+                ordem=3
+            ),
+            PerguntaTeste(
+                texto="Adapto facilmente minha forma de comunicação dependendo da pessoa com quem estou falando",
+                categoria="Comunicação Adaptativa",
+                ordem=4
+            ),
+            PerguntaTeste(
+                texto="Consigo trabalhar produtivamente mesmo quando discordo das pessoas da equipe",
+                categoria="Trabalho em Equipe",
+                ordem=5
+            ),
+            PerguntaTeste(
+                texto="Tenho facilidade para receber e processar feedback construtivo",
+                categoria="Desenvolvimento Pessoal",
+                ordem=6
+            ),
+            PerguntaTeste(
+                texto="Costumo ouvir atentamente antes de formar uma opinião ou responder",
+                categoria="Escuta Ativa",
+                ordem=7
+            ),
+            PerguntaTeste(
+                texto="Reconheço e assumo responsabilidade pelos meus erros",
+                categoria="Autoconsciência",
+                ordem=8
+            ),
+            PerguntaTeste(
+                texto="Consigo mediar conflitos entre pessoas de forma construtiva",
+                categoria="Resolução de Conflitos",
+                ordem=9
+            ),
+            PerguntaTeste(
+                texto="Mantenho-me motivado mesmo diante de desafios difíceis",
+                categoria="Resiliência",
+                ordem=10
+            )
+        ]
+        db.session.add_all(perguntas)
+        db.session.commit()
+        print(f"Criadas {len(perguntas)} perguntas do teste inicial.")
+
 def seed_database():
     """
     Função para popular o banco de dados com dados iniciais
     """
     print("Iniciando população do banco de dados...")
     
-    # Criar usuários de exemplo
-    if Usuario.query.count() == 0:
-        print("Criando usuários de exemplo...")
-        usuarios = [
-            Usuario(nome="João Silva", email="joao@exemplo.com", senha="senha123"),
-            Usuario(nome="Maria Oliveira", email="maria@exemplo.com", senha="senha123"),
-            Usuario(nome="Carlos Santos", email="carlos@exemplo.com", senha="senha123")
-        ]
-        
-        db.session.add_all(usuarios)
+    # Criar usuário de teste
+    if Usuario.query.filter_by(email='teste@gmail.com').first() is None:
+        print("Criando usuário de teste...")
+        usuario_teste = Usuario(
+            nome='Usuário Teste',
+            email='teste@gmail.com',
+            senha='teste123',
+            teste_inicial_concluido=False
+        )
+        db.session.add(usuario_teste)
         db.session.commit()
-        print(f"Criados {len(usuarios)} usuários de exemplo.")
+        print("Usuário de teste criado com sucesso!")
     
     # Criar perguntas do teste inicial
-    if PerguntaTeste.query.count() == 0:
-        print("Criando perguntas do teste inicial...")
-        perguntas = [
-            PerguntaTeste(texto="Eu me sinto confortável ao falar em público.", categoria="Comunicação", ordem=1),
-            PerguntaTeste(texto="Consigo identificar facilmente como as outras pessoas estão se sentindo.", categoria="Empatia", ordem=2),
-            PerguntaTeste(texto="Tenho facilidade para resolver conflitos entre pessoas.", categoria="Resolução de Conflitos", ordem=3),
-            PerguntaTeste(texto="Consigo controlar minhas emoções em situações de estresse.", categoria="Inteligência Emocional", ordem=4),
-            PerguntaTeste(texto="Sou bom em ouvir atentamente o que os outros têm a dizer.", categoria="Escuta Ativa", ordem=5),
-            PerguntaTeste(texto="Adapto-me facilmente a mudanças e novas situações.", categoria="Adaptabilidade", ordem=6),
-            PerguntaTeste(texto="Consigo expressar minhas ideias de forma clara e objetiva.", categoria="Comunicação", ordem=7),
-            PerguntaTeste(texto="Tenho facilidade para trabalhar em equipe.", categoria="Trabalho em Equipe", ordem=8),
-            PerguntaTeste(texto="Consigo me colocar no lugar dos outros para entender suas perspectivas.", categoria="Empatia", ordem=9),
-            PerguntaTeste(texto="Sou capaz de dar e receber feedback de forma construtiva.", categoria="Feedback", ordem=10),
-            PerguntaTeste(texto="Consigo gerenciar bem meu tempo e prioridades.", categoria="Gestão do Tempo", ordem=11),
-            PerguntaTeste(texto="Tenho facilidade para construir relacionamentos significativos.", categoria="Relacionamentos", ordem=12)
-        ]
-        
-        db.session.add_all(perguntas)
-        db.session.commit()
-        print(f"Criadas {len(perguntas)} perguntas para o teste inicial.")
+    seed_perguntas_teste()
     
     # Criar desafios de exemplo
     prazo = datetime.now(timezone.utc) + timedelta(days=7)
@@ -90,7 +130,6 @@ def seed_database():
                 desafio_pratico="Escolha uma pessoa próxima e pratique a escuta ativa em uma conversa. Não interrompa, faça perguntas abertas e demonstre que está realmente interessado. Depois, reflita sobre como foi a experiência."
             )
         ]
-        
         db.session.add_all(desafios)
         db.session.commit()
         print(f"Criados {len(desafios)} desafios de exemplo.")

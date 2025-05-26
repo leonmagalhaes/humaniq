@@ -61,29 +61,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await api.post('/auth/login', { // Ajustado para `/login`
+      console.log('Login attempt with:', { email, senha: password }); // Debug log
+      
+      const response = await api.post('/auth/login', {
         email,
-        senha: password, // Certifique-se de usar "senha" para alinhar com o back-end
+        senha: password
       });
-  
+      
+      console.log('Login response:', response.data); // Debug log
+      
       const { access_token, refresh_token, usuario } = response.data;
-  
-      // Armazena os tokens no localStorage
+      
       localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token); // Adicionado armazenamento do refresh_token
+      localStorage.setItem('refresh_token', refresh_token);
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-  
+      
       setUser(usuario);
       setError(null);
     } catch (error: any) {
-      console.error('Erro ao fazer login:', error);
-      if (error.response?.status === 400) {
-        setError('Preencha todos os campos obrigatórios.');
-      } else if (error.response?.status === 401) {
-        setError('Email ou senha inválidos.');
-      } else {
-        setError('Ocorreu um erro. Tente novamente mais tarde.');
-      }
+      console.error('Detailed login error:', error.response?.data || error); // Detailed error log
+      setError(error.response?.data?.message || 'Erro ao fazer login');
+      throw error;
     } finally {
       setLoading(false);
     }

@@ -9,39 +9,114 @@ class Usuario(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     senha_hash = db.Column(db.String(256), nullable=False)
-    data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
+    data_cadastro = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    teste_inicial_concluido = db.Column(db.Boolean, default=False)
+    nivel = db.Column(db.Integer, default=1)
+    xp = db.Column(db.Integer, default=0)
     
     # Relacionamentos
     avaliacoes = db.relationship('Avaliacao', backref='usuario', lazy=True)
     resultados = db.relationship('Resultado', backref='usuario', lazy=True)
     
-    def __init__(self, nome, email, senha):
+    def __init__(self, nome, email, senha, teste_inicial_concluido=False):
         self.nome = nome
         self.email = email
         self.senha_hash = generate_password_hash(senha)
+        self.teste_inicial_concluido = teste_inicial_concluido
     
     def verificar_senha(self, senha):
         return check_password_hash(self.senha_hash, senha)
     
+    def calcular_proximo_nivel_xp(self):
+        """Calcula XP necessário para o próximo nível"""
+        return self.nivel * 100  # Por exemplo: Nível 1 = 100 XP, Nível 2 = 200 XP, etc.
+    
+    def calcular_desafios_concluidos(self):
+        """Calcula número de desafios concluídos"""
+        return Resultado.query.filter_by(
+            usuario_id=self.id, 
+            status='concluído'
+        ).count()
+    
     def to_dict(self):
+        """Converte o usuário em um dicionário"""
         return {
             'id': self.id,
             'nome': self.nome,
             'email': self.email,
-            'data_cadastro': self.data_cadastro.isoformat()
+            'data_cadastro': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'created_at': self.data_cadastro.isoformat() if self.data_cadastro else None,
+            'teste_inicial_concluido': self.teste_inicial_concluido,
+            'nivel': self.nivel,
+            'xp': self.xp,
+            'proximo_nivel_xp': self.calcular_proximo_nivel_xp(),
+            'desafios_concluidos': self.calcular_desafios_concluidos()
         }
+
+    def calcular_sequencia(self):
+        """Calcula a sequência atual de dias consecutivos"""
+        resultados = Resultado.query.filter_by(
+            usuario_id=self.id,
+            status='concluído'
+        ).order_by(Resultado.data_conclusao.desc()).all()
+        
+        if not resultados:
+            return 0
+            
+        sequencia = 1
+        data_anterior = resultados[0].data_conclusao.date()
+        
+        for resultado in resultados[1:]:
+            data_atual = resultado.data_conclusao.date()
+            if (data_anterior - data_atual).days == 1:
+                sequencia += 1
+                data_anterior = data_atual
+            else:
+                break
+        
+        return sequencia
+    
+    def adicionar_xp(self, quantidade):
+        """Adiciona XP e atualiza nível se necessário"""
+        self.xp += quantidade
+        
+        # Verifica se deve subir de nível
+        while self.xp >= self.calcular_proximo_nivel_xp():
+            self.nivel += 1
+        
+        # Note: The commit should be done by the caller, not here
+        # This allows for transaction management at a higher level
+        return self.nivel
 
 class Avaliacao(db.Model):
     __tablename__ = 'avaliacoes'
     
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
-    data = db.Column(db.DateTime, default=datetime.utcnow)
+    data = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     pontuacao = db.Column(db.Integer, nullable=False)
     feedback = db.Column(db.Text)
     
     # Armazenar as respostas do teste como JSON
     respostas = db.Column(db.JSON)
+    
+    def calcular_medias_por_categoria(self):
+        if not self.respostas:
+            return {}
+            
+        perguntas = PerguntaTeste.query.all()
+        categorias = {}
+        
+        for pergunta in perguntas:
+            if str(pergunta.id) in self.respostas:
+                if pergunta.categoria not in categorias:
+                    categorias[pergunta.categoria] = []
+                categorias[pergunta.categoria].append(self.respostas[str(pergunta.id)])
+        
+        return {
+            categoria: sum(valores) / len(valores)
+            for categoria, valores in categorias.items()
+        }
     
     def to_dict(self):
         return {
@@ -50,7 +125,8 @@ class Avaliacao(db.Model):
             'data': self.data.isoformat(),
             'pontuacao': self.pontuacao,
             'feedback': self.feedback,
-            'respostas': self.respostas
+            'respostas': self.respostas,
+            'medias_por_categoria': self.calcular_medias_por_categoria()
         }
 
 class Desafio(db.Model):
@@ -122,9 +198,9 @@ class PerguntaTeste(db.Model):
     __tablename__ = 'perguntas_teste'
     
     id = db.Column(db.Integer, primary_key=True)
-    texto = db.Column(db.Text, nullable=False)
-    categoria = db.Column(db.String(50))  # Categoria da pergunta (opcional)
-    ordem = db.Column(db.Integer)  # Ordem de exibição
+    texto = db.Column(db.String(500), nullable=False)
+    categoria = db.Column(db.String(100), nullable=False)
+    ordem = db.Column(db.Integer, nullable=False)
     
     def to_dict(self):
         return {

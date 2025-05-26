@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -7,6 +8,13 @@ import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+
+// Adicione RadarController aos imports do Chart.js
+import { RadialLinearScale, Filler } from 'chart.js';
+import { Radar } from 'react-chartjs-2';
+
+// Registre os componentes necessários para o gráfico radar
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 // Registrar componentes do Chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -39,11 +47,32 @@ interface ProgressData {
   }[];
 }
 
+// Adicione uma interface para os dados do radar
+interface SkillsData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    backgroundColor: string;
+    borderColor: string;
+    borderWidth: number;
+  }[];
+}
+
+interface Question {
+  id: number;
+  texto: string;
+  categoria: string;
+  ordem: number;
+}
+
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [challengeHistory, setChallengeHistory] = useState<ChallengeHistory[]>([]);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
+  const [skillsData, setSkillsData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -62,6 +91,7 @@ const Profile: React.FC = () => {
     confirmPassword: ''
   });
   const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [initialTestDone, setInitialTestDone] = useState<boolean>(true);
   
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -87,6 +117,48 @@ const Profile: React.FC = () => {
           ],
         };
         setProgressData(chartData);
+        
+        // Primeiro buscar as perguntas
+        const perguntasResponse = await api.get('/assessments/perguntas');
+        const perguntas = perguntasResponse.data.perguntas;
+
+        // Depois buscar os resultados do teste
+        const testResults = await api.get('/assessments/historico');
+        if (testResults.data.avaliacoes && testResults.data.avaliacoes.length > 0) {
+          const lastAssessment = testResults.data.avaliacoes[0];
+          
+          // Agrupar respostas por categoria
+          const respostasPorCategoria: { [key: string]: number[] } = {};
+          Object.entries(lastAssessment.respostas).forEach(([perguntaId, resposta]) => {
+            const pergunta = perguntas.find((p: Question) => p.id === parseInt(perguntaId));
+            if (pergunta) {
+              if (!respostasPorCategoria[pergunta.categoria]) {
+                respostasPorCategoria[pergunta.categoria] = [];
+              }
+              respostasPorCategoria[pergunta.categoria].push(resposta as number);
+            }
+          });
+
+          // Calcular média por categoria
+          const categorias = Object.keys(respostasPorCategoria);
+          const medias = categorias.map(categoria => {
+            const respostas = respostasPorCategoria[categoria];
+            return respostas.reduce((a, b) => a + b, 0) / respostas.length;
+          });
+
+          setSkillsData({
+            labels: categorias,
+            datasets: [{
+              label: 'Suas Habilidades',
+              data: medias,
+              backgroundColor: 'rgba(147, 64, 255, 0.2)',
+              borderColor: '#9340FF',
+              borderWidth: 2
+            }]
+          });
+        } else {
+          setSkillsData(null);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do perfil:', error);
         setError('Não foi possível carregar os dados do perfil. Tente novamente mais tarde.');
@@ -96,6 +168,19 @@ const Profile: React.FC = () => {
     };
   
     fetchProfileData();
+  }, []);
+  
+  useEffect(() => {
+    const checkInitialTest = async () => {
+      try {
+        const response = await api.get('/users/initial-test-status'); // Endpoint para verificar o status do teste
+        setInitialTestDone(response.data.done);
+      } catch (error) {
+        console.error('Erro ao verificar o status do teste inicial:', error);
+      }
+    };
+
+    checkInitialTest();
   }, []);
   
   const validateForm = () => {
@@ -356,7 +441,9 @@ const Profile: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-sm text-white text-opacity-70">Sequência atual</p>
-                            <p className="font-medium">{profile.sequencia} dias</p>
+                            <p className="font-medium">
+                              {profile.sequencia || 0} dia{profile.sequencia === 1 ? '' : 's'}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -430,6 +517,58 @@ const Profile: React.FC = () => {
               ) : (
                 <p className="text-center text-white text-opacity-70">
                   Dados de progresso não disponíveis.
+                </p>
+              )}
+            </Card>
+            
+            {/* Gráfico de habilidades - remover a condição initialTestDone */}
+            <Card className="mb-8">
+              <h2 className="text-xl font-bold mb-6">Suas Habilidades</h2>
+              
+              {skillsData ? (
+                <div className="h-[400px]"> {/* Altura fixa aumentada para melhor visualização */}
+                  <Radar 
+                    data={skillsData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      scales: {
+                        r: {
+                          min: 0,
+                          max: 5,
+                          beginAtZero: true,
+                          angleLines: {
+                            color: 'rgba(255, 255, 255, 0.1)',
+                          },
+                          grid: {
+                            color: 'rgba(255, 255, 255, 0.1)',
+                          },
+                          ticks: {
+                            stepSize: 1,
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            backdropColor: 'transparent'
+                          },
+                          pointLabels: {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            font: {
+                              size: 12
+                            }
+                          }
+                        }
+                      },
+                      plugins: {
+                        legend: {
+                          labels: {
+                            color: 'rgba(255, 255, 255, 0.7)'
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              ) : (
+                <p className="text-center text-white text-opacity-70">
+                  Complete o teste inicial para ver o mapa das suas habilidades.
                 </p>
               )}
             </Card>

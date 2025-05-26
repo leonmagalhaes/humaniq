@@ -7,7 +7,9 @@ import api from '../services/api';
 
 interface Question {
   id: number;
-  text: string;
+  texto: string;  // mudando de 'text' para 'texto' para matching com backend
+  categoria: string;
+  ordem: number;
 }
 
 const Assessment: React.FC = () => {
@@ -25,7 +27,8 @@ const Assessment: React.FC = () => {
       setLoading(true);
       try {
         const response = await api.get('/assessments/perguntas');
-        setQuestions(response.data);
+        // Corrigindo o acesso aos dados - a API retorna um objeto com a chave 'perguntas'
+        setQuestions(response.data.perguntas);
       } catch (error) {
         console.error('Erro ao carregar perguntas:', error);
         setError('Não foi possível carregar as perguntas da avaliação. Tente novamente mais tarde.');
@@ -58,10 +61,13 @@ const Assessment: React.FC = () => {
     setSubmitting(true);
     
     try {
-      await api.post('/assessments/submeter', { answers });
+      // Modificando o formato dos dados enviados
+      await api.post('/assessments/submeter', { 
+        respostas: answers 
+      });
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Erro ao enviar avaliação:', error);
+    } catch (error: any) {
+      console.error('Erro ao enviar avaliação:', error.response?.data || error);
       setError('Não foi possível enviar sua avaliação. Tente novamente.');
     } finally {
       setSubmitting(false);
@@ -131,7 +137,7 @@ const Assessment: React.FC = () => {
             {questions.length > 0 && (
               <div>
                 <h2 className="text-xl font-medium mb-8">
-                  {questions[currentQuestion].text}
+                  {questions[currentQuestion].texto}
                 </h2>
                 
                 <div className="space-y-4">

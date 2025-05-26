@@ -100,34 +100,28 @@ def atualizar_perfil():
 @user_bp.route('/progresso', methods=['GET'])
 @jwt_required()
 def obter_progresso():
-    """
-    Endpoint para obter o progresso do usuário nos desafios
-    ---
-    Requer:
-      - Token de acesso JWT válido
-    Retorna:
-      - Informações sobre o progresso do usuário nos desafios
-    """
     current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(int(current_user_id))
+    
+    if not usuario:
+        return jsonify({'message': 'Usuário não encontrado'}), 404
     
     # Obter resultados dos desafios do usuário
-    resultados = Resultado.query.filter_by(usuario_id=int(current_user_id)).all()
+    resultados = Resultado.query.filter_by(
+        usuario_id=int(current_user_id),
+        status='concluído'
+    ).order_by(Resultado.data_conclusao.asc()).all()
     
-    # Calcular estatísticas de progresso
-    total_desafios = len(resultados)
-    desafios_concluidos = sum(1 for r in resultados if r.status == 'concluído')
-    desafios_pendentes = sum(1 for r in resultados if r.status == 'pendente')
-    
-    # Calcular pontuação total
-    pontuacao_total = sum(r.pontuacao for r in resultados)
-    
-    # Preparar dados para retorno
     progresso = {
-        'total_desafios': total_desafios,
-        'desafios_concluidos': desafios_concluidos,
-        'desafios_pendentes': desafios_pendentes,
-        'pontuacao_total': pontuacao_total,
-        'resultados': [resultado.to_dict() for resultado in resultados]
+        'nivel': usuario.nivel,
+        'xp': usuario.xp,
+        'proximo_nivel_xp': usuario.calcular_proximo_nivel_xp(),
+        'desafios_concluidos': usuario.calcular_desafios_concluidos(),
+        'sequencia': usuario.calcular_sequencia(),
+        'resultados': [{
+            'data_conclusao': r.data_conclusao.strftime('%d/%m/%Y'),
+            'pontuacao': r.pontuacao
+        } for r in resultados]
     }
     
     return jsonify({
@@ -187,3 +181,57 @@ def get_current_user():
         'message': 'Usuário obtido com sucesso',
         'usuario': usuario.to_dict()
     }), 200
+
+@user_bp.route('/initial-test-status', methods=['GET'])
+@jwt_required()
+def verificar_teste_inicial():
+    """
+    Endpoint para verificar se o teste inicial foi concluído
+    """
+    current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(current_user_id)
+
+    if not usuario:
+        return jsonify({'message': 'Usuário não encontrado'}), 404
+
+    # Supondo que o status do teste inicial está armazenado no campo `teste_inicial_concluido`
+    return jsonify({'done': usuario.teste_inicial_concluido}), 200
+
+@user_bp.route('/register', methods=['POST'])
+def registro():
+    data = request.get_json()
+
+    if not data or not data.get('nome') or not data.get('email') or not data.get('senha'):
+        return jsonify({'message': 'Dados incompletos. Nome, email e senha são obrigatórios.'}), 400
+
+    if Usuario.query.filter_by(email=data.get('email')).first():
+        return jsonify({'message': 'Email já cadastrado. Utilize outro email.'}), 409
+
+    novo_usuario = Usuario(
+        nome=data.get('nome'),
+        email=data.get('email'),
+        senha=data.get('senha'),
+        teste_inicial_concluido=False  # Define como False por padrão
+    )
+
+    db.session.add(novo_usuario)
+    db.session.commit()
+
+    return jsonify({'message': 'Usuário registrado com sucesso'}), 201
+
+@user_bp.route('/complete-initial-test', methods=['POST'])
+@jwt_required()
+def concluir_teste_inicial():
+    """
+    Endpoint para marcar o teste inicial como concluído
+    """
+    current_user_id = get_jwt_identity()
+    usuario = Usuario.query.get(current_user_id)
+
+    if not usuario:
+        return jsonify({'message': 'Usuário não encontrado'}), 404
+
+    usuario.teste_inicial_concluido = True
+    db.session.commit()
+
+    return jsonify({'message': 'Teste inicial concluído com sucesso'}), 200

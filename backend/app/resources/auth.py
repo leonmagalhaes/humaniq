@@ -21,26 +21,50 @@ def login():
       - Token de refresh JWT
       - Informações do usuário
     """
-    data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('senha'):
-        return jsonify({'message': 'Dados incompletos. Email e senha são obrigatórios.'}), 400
-    
-    usuario = Usuario.query.filter_by(email=data.get('email')).first()
-    
-    if not usuario or not usuario.verificar_senha(data.get('senha')):
-        return jsonify({'message': 'Credenciais inválidas. Verifique seu email e senha.'}), 401
-    
-    # Criar tokens JWT
-    access_token = create_access_token(identity=str(usuario.id))
-    refresh_token = create_refresh_token(identity=str(usuario.id))
-    
-    return jsonify({
-        'message': 'Login realizado com sucesso',
-        'access_token': access_token,
-        'refresh_token': refresh_token,
-        'usuario': usuario.to_dict()
-    }), 200
+    try:
+        data = request.get_json()
+        
+        print("Request data:", data)  # Debug log
+        
+        if not data or not data.get('email') or not data.get('senha'):
+            return jsonify({
+                'message': 'Dados incompletos. Email e senha são obrigatórios.'
+            }), 400
+        
+        usuario = Usuario.query.filter_by(email=data.get('email')).first()
+        
+        if not usuario:
+            return jsonify({
+                'message': 'Email ou senha inválidos.'
+            }), 401
+        
+        if not usuario.verificar_senha(data.get('senha')):
+            return jsonify({
+                'message': 'Email ou senha inválidos.'
+            }), 401
+        
+        # Criar tokens JWT
+        access_token = create_access_token(identity=str(usuario.id))
+        refresh_token = create_refresh_token(identity=str(usuario.id))
+        
+        user_data = usuario.to_dict()
+        print("User data:", user_data)  # Debug log
+        
+        return jsonify({
+            'message': 'Login realizado com sucesso',
+            'access_token': access_token,
+            'refresh_token': refresh_token,
+            'usuario': user_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in login endpoint: {str(e)}")  # Error log
+        import traceback
+        traceback.print_exc()  # Print full traceback
+        return jsonify({
+            'message': 'Erro interno do servidor',
+            'error': str(e)
+        }), 500
 
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
