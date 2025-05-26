@@ -23,6 +23,10 @@ const Challenge: React.FC = () => {
   const [error, setError] = useState('');
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizResult, setQuizResult] = useState<{ correct: number, total: number, passed: boolean } | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
   
   useEffect(() => {
     const fetchDesafio = async () => {
@@ -54,6 +58,41 @@ const Challenge: React.FC = () => {
       console.error(err);
     } finally {
       setSubmitting(false);
+    }
+  };
+  
+  const handleQuizSubmit = async () => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      // Format answers according to backend expectations
+      const formattedAnswers = Object.entries(quizAnswers).reduce((acc, [questionId, answerId]) => {
+        const question = desafio?.quiz.find(q => q.id === parseInt(questionId));
+        const selectedOption = question?.options.find(o => o.id === answerId);
+        acc[questionId] = selectedOption?.text || '';
+        return acc;
+      }, {} as Record<string, string>);
+
+      const response = await api.post(`/desafios/${id}/submeter`, {
+        respostasQuiz: formattedAnswers,
+        respostaPratica: '' // Add empty practical response initially
+      });
+
+      // Handle response
+      const result = response.data.resultado;
+      setQuizResult({
+        correct: result.pontuacaoQuiz / 10, // Assuming 10 points per correct answer
+        total: desafio?.quiz.length || 0,
+        passed: result.pontuacaoQuiz >= 70 // 70% to pass
+      });
+      
+      setQuizSubmitted(true);
+    } catch (error) {
+      setError('Ocorreu an error ao enviar suas respostas. Tente novamente.');
+      console.error('Erro ao enviar respostas do quiz:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -133,6 +172,64 @@ const Challenge: React.FC = () => {
               </Button>
             </div>
           </form>
+
+          {/* Quiz Section */}
+          {desafio.quiz && desafio.quiz.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-lg font-semibold mb-4">Quiz</h2>
+              
+              {desafio.quiz.map((question) => (
+                <div key={question.id} className="mb-6">
+                  <p className="font-medium mb-2">{question.text}</p>
+                  <div className="space-y-2">
+                    {question.options.map((option) => (
+                      <div key={option.id} className="flex items-center">
+                        <input
+                          type="radio"
+                          id={`question-${question.id}-option-${option.id}`}
+                          name={`question-${question.id}`}
+                          value={option.id}
+                          onChange={(e) => setQuizAnswers({
+                            ...quizAnswers,
+                            [question.id]: parseInt(e.target.value)
+                          })}
+                          className="mr-2"
+                        />
+                        <label htmlFor={`question-${question.id}-option-${option.id}`} className="text-gray-700">
+                          {option.text}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="flex justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate(`/assessment/${desafio.assessment_id}`)}
+                >
+                  Voltar
+                </Button>
+                <Button 
+                  onClick={handleQuizSubmit}
+                  variant="primary"
+                  disabled={isSubmitting || quizSubmitted}
+                >
+                  {isSubmitting ? 'Enviando...' : quizSubmitted ? 'Enviado' : 'Enviar Quiz'}
+                </Button>
+              </div>
+              
+              {quizResult && (
+                <div className="mt-4 p-4 rounded-md bg-gray-50">
+                  <p className="text-sm">
+                    Você acertou {quizResult.correct} de {quizResult.total} questões.{' '}
+                    {quizResult.passed ? 'Parabéns, você passou!' : 'Tente novamente para melhorar sua pontuação.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     </Layout>

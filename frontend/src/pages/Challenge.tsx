@@ -5,14 +5,29 @@ import Card from '../components/Card';
 import Button from '../components/Button';
 import api from '../services/api';
 
+interface Quiz {
+  id: number;
+  text: string;
+  options: {
+    id: number;
+    text: string;
+    isCorrect: boolean;
+  }[];
+}
+
 interface Desafio {
   desafio_id: number;
   titulo: string;
   descricao: string;
-  urlVideo: string;
-  concluido: boolean;
+  status: string;
   prazo: string;
-  desafioPratico: string;
+  quiz: Quiz[];
+  desafio_pratico: string;
+  video_url: string; // <-- Adicione esta linha
+  progresso?: {
+    desafioConcluido: boolean;
+    pontuacaoQuiz: number;
+  };
 }
 
 interface Pergunta {
@@ -20,7 +35,14 @@ interface Pergunta {
   texto: string;
   opcoes: string[];
   opcaoCorreta: number;
+  resposta_correta: string;
 }
+
+type PontuacaoQuiz = number | {
+  correct: number;
+  total: number;
+  passed: boolean;
+} | null;
 
 const Challenge: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +52,7 @@ const Challenge: React.FC = () => {
   const [perguntas, setPerguntas] = useState<Pergunta[]>([]);
   const [respostasQuiz, setRespostasQuiz] = useState<Record<number, number>>({});
   const [quizSubmetido, setQuizSubmetido] = useState(false);
-  const [pontuacaoQuiz, setPontuacaoQuiz] = useState<number | null>(null);
+  const [pontuacaoQuiz, setPontuacaoQuiz] = useState<PontuacaoQuiz>(null);
   const [desafioConcluido, setDesafioConcluido] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [submetendo, setSubmetendo] = useState(false);
@@ -55,7 +77,11 @@ const Challenge: React.FC = () => {
           const respostaQuiz = await api.get(`/desafios/${id}/resultado-quiz`);
           if (respostaQuiz.data.concluido) {
             setQuizSubmetido(true);
-            setPontuacaoQuiz(respostaQuiz.data.pontuacao);
+            setPontuacaoQuiz({
+              correct: respostaQuiz.data.pontuacao,
+              total: perguntas.length,
+              passed: respostaQuiz.data.pontuacao >= Math.ceil(perguntas.length * 0.7)
+            });
           }
         } catch (error) {
           // Quiz ainda não foi respondido, não é um erro
@@ -81,16 +107,20 @@ const Challenge: React.FC = () => {
   };
   
   const submeterQuiz = async () => {
-    // Verificar se todas as perguntas foram respondidas
     if (Object.keys(respostasQuiz).length !== perguntas.length) {
       alert('Por favor, responda todas as perguntas antes de enviar.');
       return;
     }
-    
+
     setSubmetendo(true);
-    
+
+    // Converte as chaves para string
+    const respostasQuizStringKeys = Object.fromEntries(
+      Object.entries(respostasQuiz).map(([k, v]) => [String(k), v])
+    );
+
     try {
-      const resposta = await api.post(`/desafios/${id}/submeter`, { respostas_quiz: respostasQuiz });
+      const resposta = await api.post(`/desafios/${id}/submeter`, { respostasQuiz: respostasQuizStringKeys });
       setQuizSubmetido(true);
       setPontuacaoQuiz(resposta.data.resultado.pontuacao);
     } catch (error) {
@@ -111,6 +141,7 @@ const Challenge: React.FC = () => {
       // Redirecionar para o dashboard após um breve delay
       setTimeout(() => {
         navigate('/dashboard');
+        window.location.reload(); // força recarregar os dados do dashboard
       }, 2000);
     } catch (error) {
       console.error('Erro ao marcar desafio como concluído:', error);
@@ -119,6 +150,80 @@ const Challenge: React.FC = () => {
       setSubmetendo(false);
     }
   };
+  
+  // Update the handleQuizSubmit function
+  const handleQuizSubmit = async () => {
+    // Verify if all questions are answered
+    if (perguntas.length === 0 || Object.keys(respostasQuiz).length !== perguntas.length) {
+      setErro('Por favor, responda todas as questões antes de enviar.');
+      return;
+    }
+
+    setSubmetendo(true);
+    setErro('');
+
+    try {
+      const resposta = await api.post(`/desafios/${id}/submeter`, {
+        respostasQuiz: respostasQuiz // Send raw answers, let backend handle validation
+      });
+
+      if (resposta.data.resultado) {
+        setPontuacaoQuiz({
+          correct: resposta.data.resultado.pontuacao,
+          total: perguntas.length,
+          passed: resposta.data.resultado.pontuacao >= Math.ceil(perguntas.length * 0.7)
+        });
+        setQuizSubmetido(true);
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Erro ao enviar respostas. Tente novamente.';
+      setErro(errorMessage);
+      console.error('Erro ao enviar quiz:', error);
+    } finally {
+      setSubmetendo(false);
+    }
+  };
+
+  // Update the useEffect hook that fetches quiz results
+  useEffect(() => {
+    const fetchDesafio = async () => {
+      try {
+        const [desafioResponse, quizResultResponse] = await Promise.all([
+          api.get(`/desafios/${id}`),
+          api.get(`/desafios/${id}/resultado-quiz`).catch(() => null) // Don't fail if no results yet
+        ]);
+
+        setDesafio(desafioResponse.data.desafio);
+
+        if (quizResultResponse?.data) {
+          setQuizSubmetido(true);
+          setPontuacaoQuiz({
+            correct: quizResultResponse.data.pontuacaoQuiz,
+            total: perguntas.length,
+            passed: quizResultResponse.data.pontuacaoQuiz >= Math.ceil(perguntas.length * 0.7)
+          });
+        }
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.message || 'Erro ao carregar desafio';
+        setErro(errorMessage);
+        console.error('Erro ao carregar dados:', err);
+      } finally {
+        setCarregando(false);
+      }
+    };
+
+    if (id) {
+      fetchDesafio();
+    }
+  }, [id]);
+  
+  function getYoutubeEmbedUrl(url: string) {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_\-]+)/);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    return url; // fallback
+  }
   
   if (carregando) {
     return (
@@ -203,13 +308,13 @@ const Challenge: React.FC = () => {
             <h2 className="text-xl font-bold mb-4">Vídeo explicativo</h2>
             <div className="aspect-w-16 aspect-h-9 mb-4">
               <iframe
-                src={desafio.urlVideo}
+                src={getYoutubeEmbedUrl(desafio.video_url)}
                 title="Vídeo do desafio"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-64 md:h-96 rounded-lg"
-              ></iframe>
+              />
             </div>
           </Card>
   
@@ -219,15 +324,13 @@ const Challenge: React.FC = () => {
   
             {quizSubmetido ? (
               <div>
-                <div className={`p-4 rounded-lg mb-6 ${
-                  pontuacaoQuiz && pontuacaoQuiz >= 2 
-                    ? 'bg-green-500 bg-opacity-20' 
-                    : 'bg-red-500 bg-opacity-20'
-                }`}>
+                <div className={`p-4 rounded-lg mb-6 bg-white bg-opacity-5`}>
                   <p className="font-medium">
-                    {pontuacaoQuiz && pontuacaoQuiz >= 2 
-                      ? `Parabéns! Você acertou ${pontuacaoQuiz} de ${perguntas.length} perguntas.` 
-                      : `Você acertou ${pontuacaoQuiz} de ${perguntas.length} perguntas. Reveja o conteúdo e tente novamente.`}
+                    {pontuacaoQuiz && typeof pontuacaoQuiz === 'object'
+                      ? pontuacaoQuiz.passed
+                        ? `Parabéns! Você acertou ${pontuacaoQuiz.correct} de ${perguntas.length} perguntas.`
+                        : `Você acertou ${pontuacaoQuiz.correct} de ${perguntas.length} perguntas. Reveja o conteúdo e tente novamente.`
+                      : null}
                   </p>
                 </div>
   
@@ -236,24 +339,28 @@ const Challenge: React.FC = () => {
                     <p className="font-medium mb-3">
                       {index + 1}. {pergunta.texto}
                     </p>
-  
                     <div className="space-y-2">
-                      {pergunta.opcoes.map((opcao, optIndex) => (
-                        <div 
-                          key={optIndex}
-                          className={`p-3 rounded-lg ${
-                            respostasQuiz[pergunta.id] === optIndex && pergunta.opcaoCorreta === optIndex
-                              ? 'bg-green-500 bg-opacity-20'
-                              : respostasQuiz[pergunta.id] === optIndex && pergunta.opcaoCorreta !== optIndex
-                                ? 'bg-red-500 bg-opacity-20'
-                                : pergunta.opcaoCorreta === optIndex
-                                  ? 'bg-green-500 bg-opacity-10'
-                                  : 'bg-white bg-opacity-5'
-                          }`}
-                        >
-                          {opcao}
-                        </div>
-                      ))}
+                      {pergunta.opcoes.map((opcao, optIndex) => {
+                        const acertou = respostasQuiz[pergunta.id] === optIndex && opcao === pergunta.resposta_correta;
+                        const errou = respostasQuiz[pergunta.id] === optIndex && opcao !== pergunta.resposta_correta;
+                        const correta = opcao === pergunta.resposta_correta;
+                        return (
+                          <div
+                            key={optIndex}
+                            className={`p-3 rounded-lg
+                              ${acertou ? 'bg-green-500 bg-opacity-20' : ''}
+                              ${errou ? 'bg-red-500 bg-opacity-20' : ''}
+                              ${correta && !acertou ? 'bg-green-500 bg-opacity-10' : ''}
+                              ${!acertou && !errou && !correta ? 'bg-white bg-opacity-5' : ''}
+                            `}
+                          >
+                            {opcao}
+                            {correta && !acertou && (
+                              <span className="ml-2 text-green-600 font-bold">(Correta)</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -299,7 +406,7 @@ const Challenge: React.FC = () => {
           <Card className="mb-8">
             <h2 className="text-xl font-bold mb-4">Desafio prático</h2>
             <p className="text-white text-opacity-90 mb-6">
-              {desafio.desafioPratico}
+              {desafio.desafio_pratico}
             </p>
           </Card>
   

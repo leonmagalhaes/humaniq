@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+from datetime import datetime, timezone
 from app.models import Usuario, Desafio, Resultado
 from app import db
 
@@ -150,61 +150,61 @@ def iniciar_desafio(desafio_id):
 @desafio_bp.route('/<int:desafio_id>/submeter', methods=['POST'])
 @jwt_required()
 def submeter_desafio(desafio_id):
-    """
-    Endpoint para submeter as respostas de um desafio
-    ---
-    Requer:
-      - Token de acesso JWT válido
-    Parâmetros:
-      - desafio_id: ID do desafio
-      - respostasQuiz: Objeto JSON com as respostas do quiz
-      - respostaPratica: Texto com a resposta do desafio prático
-    Retorna:
-      - Resultado da submissão com pontuação
-    """
     current_user_id = get_jwt_identity()
     data = request.get_json()
     
-    if not data or 'respostasQuiz' not in data or 'respostaPratica' not in data:
-        return jsonify({'message': 'Dados incompletos. Respostas do quiz e do desafio prático são obrigatórias.'}), 400
+    if not data or 'respostasQuiz' not in data:
+        return jsonify({
+            'message': 'Respostas do quiz são obrigatórias',
+            'error': 'MISSING_ANSWERS'
+        }), 400
     
-    # Verificar se o desafio existe
     desafio = Desafio.query.get(desafio_id)
-    
     if not desafio:
-        return jsonify({'message': 'Desafio não encontrado'}), 404
+        return jsonify({
+            'message': 'Desafio não encontrado',
+            'error': 'CHALLENGE_NOT_FOUND'
+        }), 404
     
-    # Obter o resultado do desafio para o usuário
-    resultado = Resultado.query.filter_by(usuario_id=int(current_user_id), desafio_id=desafio_id).first()
+    # Obter ou criar resultado
+    resultado = Resultado.query.filter_by(
+        usuario_id=int(current_user_id), 
+        desafio_id=desafio_id
+    ).first()
     
     if not resultado:
-        return jsonify({'message': 'Desafio não foi iniciado. Inicie o desafio primeiro.'}), 400
+        resultado = Resultado(
+            usuario_id=int(current_user_id),
+            desafio_id=desafio_id,
+            status='em_andamento'
+        )
+        db.session.add(resultado)
     
-    if resultado.status == 'concluído':
-        return jsonify({'message': 'Desafio já foi concluído anteriormente'}), 400
+    respostas_quiz = data['respostasQuiz']
     
-    # Calcular pontuação do quiz
-    respostasQuiz = data['respostasQuiz']
-    perguntas_quiz = desafio.perguntas
+    # Calcular pontuação - 10 pontos por resposta correta
+    pontuacao = 0
+    for pergunta in desafio.perguntas:
+        pergunta_id = str(pergunta['id'])
+        if pergunta_id in respostas_quiz:
+            resposta_usuario_indice = respostas_quiz[pergunta_id]
+            opcoes = pergunta['opcoes']
+            resposta_usuario = opcoes[resposta_usuario_indice]
+            if resposta_usuario == pergunta['resposta_correta']:
+                pontuacao += 1
     
-    pontuacao_quiz = calcular_pontuacao_quiz(respostasQuiz, perguntas_quiz)
-    
-    # Atualizar o resultado
-    resultado.status = 'concluído'
-    resultado.data_conclusao = datetime.now(datetime.timezone.utc)
-    resultado.respostasQuiz = respostasQuiz
-    resultado.respostaPratica = data['respostaPratica']
-    resultado.pontuacao = pontuacao_quiz
+    # Atualizar resultado
+    resultado.respostasQuiz = respostas_quiz
+    resultado.pontuacao = pontuacao
     
     db.session.commit()
     
     return jsonify({
-        'message': 'Desafio submetido com sucesso',
+        'message': 'Respostas submetidas com sucesso',
         'resultado': {
-            'desafioConcluido': resultado.status == 'concluído',
-            'dataInicio': resultado.data_inicio.isoformat(),
-            'dataConclusao': resultado.data_conclusao.isoformat(),
-            'pontuacaoQuiz': resultado.pontuacao
+            'pontuacao': pontuacao,
+            'total': len(desafio.perguntas),
+            'concluido': resultado.status == 'concluído'
         }
     }), 200
 

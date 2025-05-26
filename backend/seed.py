@@ -93,7 +93,7 @@ def seed_database():
             Desafio(
                 titulo="Comunicação Assertiva",
                 descricao="Aprenda a se comunicar de forma clara, direta e respeitosa, expressando suas ideias e sentimentos sem agredir ou submeter-se aos outros.",
-                video_url="https://www.youtube.com/embed/exemplo1",
+                video_url="https://www.youtube.com/watch?v=rqE_mxXlZik",
                 status="ativo",
                 prazo=prazo,
                 perguntas=[
@@ -106,7 +106,7 @@ def seed_database():
             Desafio(
                 titulo="Inteligência Emocional",
                 descricao="Desenvolva sua capacidade de reconhecer e gerenciar suas próprias emoções e compreender as emoções dos outros.",
-                video_url="https://www.youtube.com/embed/exemplo2",
+                video_url="https://www.youtube.com/watch?v=PAVaaGa_gug",
                 status="ativo",
                 prazo=prazo,
                 perguntas=[
@@ -119,7 +119,7 @@ def seed_database():
             Desafio(
                 titulo="Empatia e Escuta Ativa",
                 descricao="Aprenda a se colocar no lugar do outro e a ouvir verdadeiramente, sem julgamentos ou interrupções.",
-                video_url="https://www.youtube.com/embed/exemplo3",
+                video_url="https://www.youtube.com/watch?v=K5Kj-G7aVvY&t=60s",
                 status="ativo",
                 prazo=prazo,
                 perguntas=[

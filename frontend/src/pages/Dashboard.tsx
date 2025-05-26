@@ -42,7 +42,12 @@ const Dashboard: React.FC = () => {
         
         // Buscar desafios recentes
         const recentResponse = await api.get('/desafios');
-        setRecentChallenges(recentResponse.data.desafios || []);
+        setRecentChallenges(
+          (recentResponse.data.desafios || []).map((d: any) => ({
+            ...d,
+            concluido: d.progresso?.status === 'concluído' // ou d.progresso?.desafioConcluido
+          }))
+        );
         
         // Buscar progresso
         const progressResponse = await api.get('/users/progresso');
